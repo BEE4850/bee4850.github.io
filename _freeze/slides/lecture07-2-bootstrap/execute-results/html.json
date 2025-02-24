@@ -1,0 +1,12 @@
+{
+  "hash": "b6302febb5052063dfd92bbf99e1a71a",
+  "result": {
+    "engine": "julia",
+    "markdown": "---\ntitle: \"The Bootstrap\"\nsubtitle: \"Lecture 12\"\nauthor: \"Vivek Srikrishnan\"\ncourse: \"BEE 4850\"\ninstitution: \"Cornell University\"\ndate: \"March 05, 2024\"\nformat:\n    revealjs:\n        slide-number: c/t\n        show-slide-number: all\n        center-title-slide: true\n        width: 1280\n        height: 720\n        transition: none\n        toc: true\n        toc-depth: 1\n        toc-title: \"Overview\"\n        history: false\n        link-external-newwindow: true\n        theme: ../sass/slides.scss\n        template-partials:\n            - title-slide.html\n        menu:\n            numbers: true\n        html-math-method: mathjax\n        include-in-header: mathjax-config.html\n        date-format: long\n        email-obfuscation: javascript\n        chalkboard:\n            theme: whiteboard\n            buttons: true\n        mermaid: \n            theme: dark\nengine: julia\nfilters:\n  - code-fullscreen\n---\n\n\n\n\n\n\n\n# Review\n\n## Monte Carlo Simulation\n\n- **Monte Carlo Principle**: Approximate $$\\mathbb{E}_p[f(X)] = \\int f(x) p(x) dx \\approx \\frac{1}{n} \\sum_{i=1}^n f(X_i)$$\n\n\n# Upcoming Schedule\n\n## Next Classes\n\n**Wednesday**: The Bootstrap\n\n\n# References\n\n## References (Scroll for Full List)\n\n",
+    "supporting": [
+      "lecture07-2-bootstrap_files"
+    ],
+    "filters": [],
+    "includes": {}
+  }
+}

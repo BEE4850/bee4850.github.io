@@ -1,5 +1,5 @@
 ---
-title: "More Bayes and Simulating Random Variables"
+title: "Bayesian Workflow Example"
 subtitle: "Lecture 09"
 author: "Vivek Srikrishnan"
 course: "BEE 4850"
@@ -49,11 +49,11 @@ Pkg.instantiate()
 #| output: false
 
 using Random
+using Distributions
 using DataFrames
 using DataFramesMeta
 using CSV
 using Dates
-using Distributions
 using ColorSchemes
 using Plots
 using StatsPlots
@@ -61,8 +61,6 @@ using StatsBase
 using Optim
 using LaTeXStrings
 using Measures
-using Animations
-using Logging
 
 Random.seed!(1)
 
@@ -86,7 +84,9 @@ default(
 
 ## Bayes' Rule
 
-$$\underbrace{{p(\theta | y)}}_{\text{posterior}} = \frac{\overbrace{p(y | \theta)}^{\text{likelihood}}}{\underbrace{p(y)}_\text{normalization}} \overbrace{p(\theta)}^\text{prior}$$
+$$
+\underbrace{{p(\theta | y)}}_{\text{posterior}} = \frac{\overbrace{p(y | \theta)}^{\text{likelihood}}}{\underbrace{p(y)}_\text{normalization}} \overbrace{p(\theta)}^\text{prior}
+$$
 
 ## Bayesian Model Components
 
@@ -154,7 +154,7 @@ dat_ma = DataFrame(datetime=dat.datetime[ma_offset+1:end-ma_offset], residual=da
 
 # group data by year and compute the annual maxima
 dat_ma = dropmissing(dat_ma) # drop missing data
-dat_annmax = combine(dat_ma -> dat_ma[argmax(dat_ma.residual), :], groupby(transform(dat_ma, :datetime => x->year.(x)), :datetime_function))
+dat_annmax = combine(dat_ma -> dat_ma[argmax(dat_ma.residual), :], groupby(DataFrames.transform(dat_ma, :datetime => x->year.(x)), :datetime_function))
 delete!(dat_annmax, nrow(dat_annmax)) # delete 2023; haven't seen much of that year yet
 rename!(dat_annmax, :datetime_function => :Year)
 select!(dat_annmax, [:Year, :residual])
@@ -427,19 +427,80 @@ In general, priors matter more for:
 
 **Always justify and test your priors**. Explicitly compare the prior to the posterior to see whether your inferences are driven by the prior or by the data (probability model).
 
+# Probabilistic Programming Languages
+
+## Overview of PPLs
+
+- Speciality "languages" for specifying probability models.
+- Rely on **automatic differentiation** to compile likelihood/posterior functions.
+- Many frameworks developing over the last few years:
+  - Python: `pyMC3`
+  - Julia: `Turing.jl`
+  - Cross-platform: `Stan`
+
+## Specifying Extreme Example with `Turing.jl`
+
+```{julia}
+#| echo: true
+#| output: false
+#| code-line-numbers: "|4|5-7|8-9|10-11|"
+
+using Turing
+## y: observed data
+## can also specify covariates or auxiliary data in the function if used
+@model function tide_model(y)
+    # specify priors
+    μ ~ Normal(0, 0.5)
+    σ ~ truncated(Normal(0, 0.1), 0, Inf)
+    # specify likelihood
+    y ~ LogNormal(μ, σ)
+    # returning y allows us (later) to generate predictive simulations
+    return y 
+end
+```
+
+## Finding MLE and MAP
+
+```{julia}
+#| echo: true
+m = tide_model(dat_annmax.residual)
+θ_mle = maximum_likelihood(m)
+θ_map = maximum_a_posteriori(m)
+
+@show θ_mle;
+@show θ_map;
+@show p_map2;
+```
+
+## More PPL Tips
+
+- Parameterization can matter (more when we talk about simulation from posterior than MLE/MAP); **read documentation and tips and don't feel shy about checking Reddit/forums**
+- **Sometimes** can use external models: easy in Turing, more difficult in Stan and not sure of current status in pyMC3.
+- Packages rely on a lot of dependencies which may not be trivial to install.
+
+## More PPL Tips
+
+When are PPLs useful?
+
+1. Readable model code;
+2. Complex models (hierarchical models, external models with infeasible parameters, etc)
+3. "Full Bayes" (haven't discussed yet, but generating samples from the posterior distribution).
 
 # Key Points and Upcoming Schedule
 
-## Key Points: Bayesian Statistics
+## Key Points: Bayesian Workflow
 
 - Use prior predictive simulations to refine priors.
 - Priors matter less when likelihood is highly informative.
+- Can use PPLs to specify models without formally writing out likelihoods.
 
 # Upcoming Schedule
 
 ## Next Classes
 
-**Next Week**: Sampling! Specifically, Monte Carlo.
+**Wednesday**: Random variate generation and sampling from distributions.
+
+**Next Week**: Monte Carlo and the Bootstrap.
 
 ## Term Project
 

@@ -442,7 +442,9 @@ Converging at a rate of $1/\sqrt{n}$ is not great. But:
 :::
 ::::
 
+::: {.fragment .fade-in}
 $$\mathbb{P}[\text{SO}_2(\theta) > 0.14] = \int \mathbb{I}(\text{SO}_2(\theta) > 0.14) p(\theta) d\theta$$
+:::
 
 ## Airshed Model
 
