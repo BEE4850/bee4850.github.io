@@ -344,6 +344,38 @@ This time we kept `{julia} Int64(round(100 * sum(keep_samp) / nsamp; digits=0))`
 
 Finding a good proposal and computing $M$ may not be easy (or possible) for complex distributions!
 
+## Bimodal Rejection Sampling Example
+
+```{julia}
+#| label: fig-mixture
+#| fig-cap: rejection sampling for a mixture model
+#| echo: true
+#| code-fold: true
+#| layout-ncol: 2
+
+# specify target distribution
+mixmod = MixtureModel(Normal, [(-1, 0.75), (1, 0.4)], [0.5, 0.5])
+x = -5:0.01:5
+p1 = plot(x, pdf.(mixmod, x), lw=3, color=:red, xlabel=L"$x$", ylabel="Density", label="Target")
+plot!(p1, x, 2.5 * pdf.(Normal(0, 1.5), x), lw=3, color=:blue, label="Proposal (M=2.5)")
+plot!(p1, size=(550, 500))
+
+nsamp = 10_000
+M = 2.5
+u = rand(Uniform(0, 1), nsamp)
+y = rand(Normal(0, 1.5), nsamp)
+g = pdf.(Normal(0, 1.5), y)
+f = pdf.(mixmod, y)
+keep_samp = u .< f ./ (M * g)
+p2 = histogram(y[keep_samp], normalize=:pdf, xlabel=L"$x$", ylabel="Density", label="Kept Samples", legend=:topleft)
+plot!(p2, x, pdf.(mixmod, x), linewidth=3, color=:black, label="True Target")
+density!(y[keep_samp], label="Sampled Density", color=:red)
+plot!(p2, size=(550, 500))
+
+display(p1)
+display(p2)
+```
+
 # Random Number Generators
 
 ## Where Do "Random" Samples Come From?
@@ -473,7 +505,7 @@ Pseudo-random numbers are deterministic, so can be repeated. The sequence depend
 - Transform into other distributions using:
   - Quantile method;
   - Rejection method.
-- Default functions work well; only really have to worry about any of this when sampling from "non-nice" distributions (*e.g.* most posteriors)
+- Default functions work well; only really have to worry about any of this when sampling from "non-nice" distributions
 
 # Upcoming Schedule
 
