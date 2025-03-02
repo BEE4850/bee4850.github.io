@@ -569,6 +569,12 @@ display(p)
 :::
 :::
 
+## Monte Carlo Optimization
+
+Can also use Monte Carlo to estimate expected values for optimization problems 
+
+For example: in previous problem, might try to optimize a control strategy with an objective of minimizing violations. But no closed form representation of the distribution, so use MC.
+
 # Estimating Quantiles with Monte Carlo
 
 ## MC Estimate of the CDF
@@ -602,6 +608,10 @@ In other words, **the smaller the density at the "true" quantile $z^\alpha$, the
 - Monte Carlo is an unbiased estimator; confidence intervals given by CLT.
 - Be mindful of Monte Carlo standard error for "naive" MC with iid samples.
 - **Advanced**: Variance reduction techniques to improve convergence, see e.g. <https://artowen.su.domains/mc/Ch-var-basic.pdf>.
+
+## Perhaps Most Importantly...
+
+**Always report Monte Carlo error!**
 
 # Upcoming Schedule
 

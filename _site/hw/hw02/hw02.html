@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../project.html" rel="next">
+<link href="../../hw/hw03/hw03.html" rel="next">
 <link href="../../hw/hw01/hw01.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -251,6 +251,18 @@ window.Quarto = {
  <span class="menu-text">Week 5</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../weeks/week06.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Week 6</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../weeks/week07.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Week 7</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -278,6 +290,12 @@ window.Quarto = {
   <div class="sidebar-item-container"> 
   <a href="../../hw/hw02/hw02.html" class="sidebar-item-text sidebar-link active">
  <span class="menu-text">Homework 02</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../hw/hw03/hw03.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Homework 03</span></a>
   </div>
 </li>
       </ul>
@@ -385,7 +403,7 @@ window.Quarto = {
   </ul></li>
   <li><a href="#references" id="toc-references" class="nav-link" data-scroll-target="#references">References</a></li>
   </ul>
-<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="hw02.pdf"><i class="bi bi-file-pdf"></i>PDF</a></li></ul></div></nav>
+<div class="quarto-alternate-formats"><h2>Other Formats</h2><ul><li><a href="hw02.ipynb" download="hw02.ipynb"><i class="bi bi-journal-code"></i>Jupyter</a></li></ul></div></nav>
     </div>
 <!-- main -->
 <main class="content page-columns page-full" id="quarto-document-content">
@@ -483,10 +501,10 @@ Due Date
 <h3 class="anchored" data-anchor-id="problem-1">Problem 1</h3>
 <div class="cell markdown">
 <p>Consider the following sea-level rise model from <a href="https://doi.org/10.1007/s00382-008-0507-2">Grinsted et al (2010)</a>, which models sea-level rise based on a linear relationship between global mean temperature and an “equilibrium” sea level:</p>
-<p><span class="math display">\[\begin{aligned}
+<p><span class="math display">\[\begin{align*}
 \frac{dS}{dt} &amp;= \frac{S_\text{eq} - S}{\tau} \\
 S_\text{eq} &amp;= aT + b,
-\end{aligned}
+\end{align*}
 \]</span></p>
 <p>where</p>
 <ul>
@@ -504,7 +522,7 @@ S_\text{eq} &amp;= aT + b,
 <li>Global mean sea level anomalies (relative to the 1990 mean global sea level) are in <code>data/CSIRO_Recons_gmsl_yr_2015.csv</code>, courtesy of CSIRO (<a href="https://www.cmar.csiro.au/sealevel/sl_data_cmar.html" class="uri">https://www.cmar.csiro.au/sealevel/sl_data_cmar.html</a>). The standard deviation of the estimate is also added for each year.</li>
 </ul></li>
 <li>Write a function to simulate global mean sea levels under a set of model parameters after discretizing the equations above with a timestep of <span class="math inline">\(\delta t = 1\)</span> yr. You will need to subset the temperature data to the years where you also have sea-level data.</li>
-<li>Fit the model under the assumption of Gaussian i.i.d. residuals (include both an uncertain model error term and the standard deviation of the observations in the probability model specification) by maximizing the likelihood. Report the parameter estimates. Note that you will need another parameter <span class="math inline">\(S_0\)</span> for the initial sea level. What can you conclude about the relationship between global mean temperature increases and global mean sea level rise rates?</li>
+<li>Fit the model under the assumption of Gaussian i.i.d. residuals by maximizing the likelihood and report the parameter estimates. Note that you will need another parameter <span class="math inline">\(S_0\)</span> for the initial sea level. What can you conclude about the relationship between global mean temperature increases and global mean sea level rise rates?</li>
 <li>How appropriate was the Gaussian i.i.d. probability model for the residuals? Use any needed quantitative or qualitative assessments of goodness of fit to justify your answer. If this was not an appropriate probability model, what would you change?</li>
 </ul>
 </div>
@@ -1021,8 +1039,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../project.html" class="pagination-link" aria-label="Term Project">
-        <span class="nav-page-text">Term Project</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../hw/hw03/hw03.html" class="pagination-link" aria-label="Homework 03">
+        <span class="nav-page-text">Homework 03</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>

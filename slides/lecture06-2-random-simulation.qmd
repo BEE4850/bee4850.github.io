@@ -100,7 +100,7 @@ default(
 - Easier than computing integrals (Monte Carlo).
 - Computational efficiency (*e.g.* stochastic gradient descent).
 
-**Generally*: Turns calculus/analytical problems into data summary problems.
+**Generally**: Turns calculus/analytical problems into data summary problems.
 
 ## Example: Posterior Sampling
 
@@ -135,15 +135,13 @@ plot!(size=(550, 500))
 :::
 ::::
 
-## Simulation Workflow
-
 ## Built-In Sampling Functions
 
 **R**: `sample`, `rnorm`, `rbinom`, etc.
 
 **Julia**: `rand`, `Distributions.rand`
 
-**Python**: `numpy.random.rand`, `scipy.xx.rand`
+**Python**: `numpy.random.rand`, `scipy.stats.xx.rand`
 
 ## What Are These Functions Doing?
 
@@ -178,11 +176,11 @@ Given category probabilities $\theta_1, \theta_2, \ldots, \theta_n$:
 
 ## Generalization: Quantile Transform Method
 
-Given $U \sim Uniform(0, 1)$, target CDF $F$, **$X = F^{-1}(U)$ has CDF $F$.
+Given $U \sim Uniform(0, 1)$, target CDF $F$, **$X = F^{-1}(U)$ has CDF $F$**.
 
 Why?
 
-$$\mathbb{P}(X \leq a) = \mathbb{P}(F^{-1}(U) \leq a) = \mathbb{P}(U \leq a) = F(a)$$
+$$\mathbb{P}(X \leq a) = \mathbb{P}(F^{-1}(U) \leq a) = \mathbb{P}(U \leq F(a)) = F(a)$$
 
 ::: {.fragment .fade-in}
 In other words, if we can generate uniform variables and calculate quantiles, can generate non-uniform variables.
@@ -199,7 +197,7 @@ In other words, if we can generate uniform variables and calculate quantiles, ca
 ::: {.column width=50%}
 Suppose the PDF $f$ has support on $[a, b]$ and $f(x) \leq M$.
 
-**What could we do to sample $X \sim f(\cdot)$?
+**What could we do to sample $X \sim f(\cdot)$**?
 :::
 ::: {.column width=50%}
 ```{julia}
@@ -511,9 +509,7 @@ Pseudo-random numbers are deterministic, so can be repeated. The sequence depend
 
 ## Next Classes
 
-**Wednesday**: Monte Carlo
-
-**Next Week**: The Bootstrap
+**Next Week**: Monte Carlo Simulation and the Bootstrap
 
 ## Term Project
 

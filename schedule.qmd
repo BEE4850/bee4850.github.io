@@ -22,10 +22,10 @@ Readings can be accessed using the link (when needed, through the Cornell librar
 |   | 2/12 | Calibrated Residuals | [{{< fa sharp presentation-screen >}}](slides/lecture04-2-correlatedresiduals.qmd) | | |
 | [5](weeks/week05.qmd) | 2/17 | ***February Break*** | | | |
 |   | 2/19 | Bayesian Statistics |  [{{< fa sharp presentation-screen >}}](slides/lecture05-1-bayes.qmd) | | Gelman & Shalizi ([2013](https://bpspsychub-onlinelibrary-wiley-com.proxy.library.cornell.edu/doi/10.1111/j.2044-8317.2011.02037.x))|
-| 6 | 2/24 | Bayesian Workflow | [{{< fa sharp presentation-screen >}}](slides/lecture06-1-bayes-workflow.qmd) | | |
+| [6](weeks/week06.qmd) | 2/24 | Bayesian Workflow | [{{< fa sharp presentation-screen >}}](slides/lecture06-1-bayes-workflow.qmd) | | |
 |   | 2/26 | Random Variate Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture06-2-random-simulation.qmd) | | |
-| 7 | 3/3  | Monte Carlo Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture07-1-monte-carlo.qmd) | | |
-|   | 3/5  | The Bootstrap  | | | |
+| [7](weeks/week07.qmd) | 3/3  | Monte Carlo Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture07-1-monte-carlo.qmd) | Bankes ([1993](https://pubsonline-informs-org.proxy.library.cornell.edu/doi/10.1287/opre.41.3.435)) | [{{< fa sharp pen-field >}}](hw/hw02/hw02.qmd) |
+|   | 3/5  | The Bootstrap  | [{{< fa sharp presentation-screen >}}](../slides/lecture07-2-bootstrap.qmd) | | |
 | 8 | 3/10 |  | | | |
 |   | 3/12 |  | | | |
 | 9 | 3/17 | | | | |
