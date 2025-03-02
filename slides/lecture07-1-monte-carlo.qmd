@@ -94,12 +94,12 @@ default(
 
 ## Stochastic Simulation
 
-**Goal**: Estimate $\mathbb{E}_p\left[f(x)\right]$, $x \sim p(x)$
+**Goal**: Estimate $\mathbb{E}_p\left[h(x)\right]$, $x \sim f(x)$
 
 **Monte Carlo principle**: 
 
-- Sample $x^1, x^2, \ldots, x^N \sim p(x)$
-- Estimate $\mathbb{E}_p\left[f(x)\right] \approx \sum_{n=1}^N f(x^n)$ / N
+- Sample $x^1, x^2, \ldots, x^N \sim f(x)$
+- Estimate $\mathbb{E}_p\left[h(x)\right] \approx \sum_{n=1}^N h(x^n)$ / N
 
 **In other words**: replace calculus with data summaries!
 
@@ -599,6 +599,43 @@ From the CLT and some (not super important) theory about order statistics:
 $$\text{Var}(\hat{z}^\alpha_n) \to \frac{\sigma^2_y}{n}\frac{\alpha (1 - \alpha)}{f^2(z^\alpha)}$$
 
 In other words, **the smaller the density at the "true" quantile $z^\alpha$, the greater the error**.
+
+# More Advanced Monte Carlo Methods (Teasers)
+
+## What If We Can't Sample From The Distribution?
+
+- May not be able to generate samples $X \sim f(x)$ efficiently
+- Think of sampling from tails:
+
+$$P(X > k) \approx \frac{1}{M} \sum_{i=1}^M \mathbb{I}(X_i > k)$$
+
+## Importance Sampling
+
+Extension of rejection sampling without requiring "rejection": 
+
+1. Draw samples from *importance distribution* g(x);
+2. Reweight samples:
+    $$
+    \begin{align*}
+    \mathbb{E}_f[h(x)] &= \int_x \frac{f(x)}{g(x)} g(x)h(x) dx \\
+    &\approx \frac{1}{M} \sum_{i=1}^M \frac{f(x)}{g(x)}h(x)
+    \end{align*}
+    $$
+
+## Importance Sampling Needs
+
+Technically works with any proposal $g$, but more efficient if $g$ "covers" $f$ (like with rejection sampling):
+
+$$f(x)/g(x) < M  < \infty$$
+
+## Antithetic Variates
+
+If target values of pairs of samples $h(X_i$) and $h(Y_i)$ are negatively correlated, can increase rate of convergence of $$\frac{1}{2M} \sum_{i=1}^M [h(X_i) + h(Y_i)]$$ relative to $\frac{1}{2M} h(X_i)$ alone.
+
+## Antithetic Variate Generation Can Be Difficult in Practice
+
+- Ensuring anti-correlation can be difficult to verify in general;
+- Gains in efficiency are dependent on effectiveness of antithetical variate generation and shape of $h(x)$
 
 # Key Points
 
