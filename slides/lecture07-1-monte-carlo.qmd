@@ -322,11 +322,18 @@ This is an example of **uncertainty propagation**: draw samples from some distri
 
 ## Monte Carlo: Formal Approach
 
-**Formally**: Monte Carlo estimation as the computation of the expected value of a random quantity $Y$, $\mu = \mathbb{E}[Y]$.
+**Formally**: Monte Carlo estimation as the computation of the expected value of a random quantity $Y = f(X)$, $\mu = \mathbb{E}[Y]$.
 
 To do this, generate $n$ independent and identically distributed values $Y_1, \ldots, Y_n$.  Then the sample estimate is
 
 $$\tilde{\mu}_n = \frac{1}{n}\sum_{i=1}^n Y_i$$
+
+## What Makes a Good Statistical Estimator?
+
+Statistical estimators are **random**, which means we can't ever guarantee that we get back the "true" value 
+
+- No bias ($\text{Bias} = \mathbb{E}_g[\tilde{\mu}] - \mu$)
+- Well-characterized, ideally small, variance ($\text{Var}(\tilde{\mu})$)
 
 ## The Law of Large Numbers
 

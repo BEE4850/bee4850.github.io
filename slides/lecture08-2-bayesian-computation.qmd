@@ -1,0 +1,629 @@
+---
+title: "Bayesian Computing and MCMC"
+subtitle: "Lecture 14"
+author: "Vivek Srikrishnan"
+course: "BEE 4850"
+institution: "Cornell University"
+date: "March 12, 2024"
+format:
+    revealjs:
+        slide-number: c/t
+        show-slide-number: all
+        center-title-slide: true
+        width: 1280
+        height: 720
+        transition: none
+        toc: true
+        toc-depth: 1
+        toc-title: "Overview"
+        history: false
+        link-external-newwindow: true
+        theme: ../sass/slides.scss
+        template-partials:
+            - title-slide.html
+        menu:
+            numbers: true
+        html-math-method: mathjax
+        include-in-header: mathjax-config.html
+        date-format: long
+        email-obfuscation: javascript
+        chalkboard:
+            theme: whiteboard
+            buttons: true
+        mermaid: 
+            theme: dark
+engine: julia
+filters:
+  - code-fullscreen
+---
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+#| output: false
+
+using Random
+using DataFrames
+using DataFramesMeta
+using CSV
+using Dates
+using Distributions
+using ColorSchemes
+using Plots
+using StatsPlots
+using StatsBase
+using Optim
+using LaTeXStrings
+using Measures
+using Turing
+
+Random.seed!(1)
+
+plot_font = "Computer Modern"
+default(
+    fontfamily=plot_font,
+    linewidth=3, 
+    framestyle=:box, 
+    label=nothing, 
+    grid=false,
+    guidefontsize=18,
+    legendfontsize=16,
+    tickfontsize=16,
+    titlefontsize=20,
+    bottom_margin=10mm,
+    left_margin=5mm
+)
+```
+
+# Last Classes
+
+## The Bootstrap 
+
+:::: {.columns}
+::: {.column width=60%}
+@Efron1979-zv suggested combining estimation with simulation: the **bootstrap**.
+
+**Key idea**: use the data to simulate a data-generating mechanism.
+:::
+::: {.column width=40%}
+::: {.center}
+![Baron von Munchhausen Pulling Himself By His Hair](https://upload.wikimedia.org/wikipedia/commons/3/3b/Muenchhausen_Herrfurth_7_500x789.jpg){width=60%}
+
+::: {.caption}
+Source: [Wikipedia](https://en.wikipedia.org/wiki/M%C3%BCnchhausen_trilemma)
+:::
+:::
+:::
+::::
+
+## Why Does The Bootstrap Work?
+
+Let $t_0$ the "true" value of a statistic, $\hat{t}$ the estimate of the statistic from the sample, and $(\tilde{t}_i)$ the bootstrap estimates.
+
+- Variance: $\text{Var}[\hat{t}] \approx \text{Var}[\tilde{t}]$
+- Then the bootstrap error distribution approximates the sampling distribution
+  $$(\tilde{t}_i - \hat{t}) \overset{\mathcal{D}}{\sim} \hat{t} - t_0$$
+
+## Bootstrap Variants
+
+- Resample Cases (Non-Parametric)
+- Resample Residuals (from fitted model trend)
+- Simulate from Fitted Model (Parametric)
+
+## Which Bootstrap To Use?
+
+Depends on trust in model "correctness": 
+  - Do we trust the model specification to be reasonably correct?
+  - Do we trust that we have enough samples to recover the empirical CDF?
+  - Do we trust the data-generating process?
+
+
+# Bayesian Computing
+
+## Bayesian Computing Challenges
+
+- Samples needed to compute posterior quantities (credible intervals, posterior predictive distributions, model skill estimates, etc.) with Monte Carlo.
+- Posteriors often highly correlated.
+- Grid approximation can help us visualize the posteriors in *low* dimensions.
+- Rejection sampling scales poorly to higher dimensions.
+- Conjugate priors only are appropriate in limited cases.
+
+## What Would Make A Good Algorithm?
+
+A wishlist:
+
+- Don't need to know the characteristics of the distribution.
+- Samples will eventually be correctly distributed (given enough time).
+- Ideally fast and requiring minimal tuning.
+
+## How Can We Do This?
+
+Suppose we want to sample a probability distribution $f(\cdot)$ and are at a parameter vector $x$.
+
+What if we had a method that would let us stochastically jump from $x$ to a new vector $y$ in such a way that, eventually, we would visit any given vector wiith probability $f$?
+
+::: {.fragment .fade-in}
+There is a mathematical process that has these properties: **Markov Chains**
+
+These methods are called **Markov chain Monte Carlo (MCMC)**.
+:::
+
+# Markov Chains
+
+## What Is A Markov Chain?
+
+::: {.columns}
+::: {.column width=60%}
+Consider a stochastic process $\{X_t\}_{t \in \mathcal{T}}$, where 
+
+- $X_t \in \mathcal{S}$ is the state at time $t$, and 
+- $\mathcal{T}$ is a time-index set (can be discrete or continuous)
+- $\mathbb{P}(s_i \to s_j) = p_{ij}$. 
+::: 
+::: {.column width=40%}
+![Markov State Space](figures/markov-state.png){width=75%}
+:::
+::::
+
+## Markovian Property
+
+This stochastic process is a **Markov chain** if it satisfies the **Markovian (or memoryless) property**:
+$$\begin{align*}
+\mathbb{P}(X_{T+1} = s_i &| X_1=x_1, \ldots, X_T=x_T) = \\ &\qquad\mathbb{P}(X_{T+1} = s_i| X_T=x_T)
+\end{align*}
+$$
+
+## Example: "Drunkard's Walk"
+
+::: {.center}
+![:img Random Walk, 80%](figures/random_walk.png)
+:::
+
+::: {.incremental}
+- How can we model the *unconditional* probability $\mathbb{P}(X_T = s_i)$?
+- How about the *conditional* probability $\mathbb{P}(X_T = s_i | X_{T-1} = x_{T-1})$?
+:::
+
+## Example: Weather
+
+Suppose the weather can be foggy, sunny, or rainy.
+
+Based on past experience, we know that:
+
+1. There are never two sunny days in a row;
+2. Even chance of two foggy or two rainy days in a row;
+3. A sunny day occurs 1/4 of the time after a foggy or rainy day.
+
+## Aside: Higher Order Markov Chains
+
+Suppose that today's weather depends on the prior *two* days. 
+
+::: {.incremental}
+1. Can we write this as a Markov chain?
+2. What are the states?
+:::
+
+## Weather Transition Matrix
+
+We can summarize these probabilities in a **transition matrix** $P$:
+$$
+P = 
+\begin{array}{cc} 
+\begin{array}{ccc}
+\phantom{i}\color{red}{F}\phantom{i} & \phantom{i}\color{red}{S}\phantom{i} & \phantom{i}\color{red}{R}\phantom{i}
+\end{array}
+\\
+\begin{pmatrix}
+      1/2 & 1/4 & 1/4 \\
+      1/2 & 0 & 1/2 \\
+      1/4 & 1/4 & 1/2
+      \end{pmatrix}
+&
+\begin{array}{ccc}
+\color{red}F  \\ \color{red}S  \\ \color{red}R
+\end{array}   
+\end{array}
+$$
+
+Rows are the current state, columns are the next step, so $\sum_i p_{ij} = 1$.
+
+## Weather Example: State Probabilities
+
+Denote by $\lambda^t$ a probability distribution over the states at time $t$.
+
+Then $\lambda^t = \lambda^{t-1}P$:
+
+$$\begin{pmatrix}\lambda^t_F & \lambda^t_S & \lambda^t_R \end{pmatrix} =  
+\begin{pmatrix}\lambda^{t-1}_F & \lambda^{t-1}_S & \lambda^{t-1}_R \end{pmatrix} 
+      \begin{pmatrix}
+      1/2 & 1/4 & 1/4 \\
+      1/2 & 0 & 1/2 \\
+      1/4 & 1/4 & 1/2
+      \end{pmatrix}
+$$
+
+## Multi-Transition Probabilities
+
+Notice that $$\lambda^{t+i} = \lambda^t P^i,$$ so multiple transition probabilities are $P$-exponentials. 
+
+$$P^3 =
+\begin{array}{cc} 
+\begin{array}{ccc}
+\phantom{iii}\color{red}{F}\phantom{ii} & \phantom{iii}\color{red}{S}\phantom{iii} & \phantom{ii}\color{red}{R}\phantom{iii}
+\end{array}
+\\
+\begin{pmatrix}
+      26/64 & 13/64 & 25/64 \\
+      26/64 & 12/64 & 26/64 \\
+      26/64 & 13/64 & 26/64
+      \end{pmatrix}
+&
+\begin{array}{ccc}
+\color{red}F  \\ \color{red}S  \\ \color{red}R
+\end{array}   
+\end{array}
+$$
+
+## Long Run Probabilities
+
+What happens if we let the system run for a while starting from an initial sunny day? 
+
+```{julia}
+#| echo: true
+#| output: true
+#| code-fold: true
+#| fig-align: center
+#| label: fig-markov-weather
+#| fig-cap: State probabilities for the weather examples.
+
+current = [1.0, 0.0, 0.0]
+P = [1/2 1/4 1/4
+    1/2 0 1/2
+    1/4 1/4 1/2]   
+
+T = 21
+
+state_probs = zeros(T, 3)
+state_probs[1,:] = current
+for t=1:T-1
+    state_probs[t+1, :] = state_probs[t:t, :] * P
+end
+
+
+p = plot(0:T-1, state_probs, label=["Foggy" "Sunny" "Rainy"], palette=:mk_8, linewidth=3)
+xlabel!("Time")
+ylabel!("State Probability")
+plot!(p, size=(1000, 350))
+```
+
+## Stationary Distributions
+
+This stabilization always occurs when the probability distribution is an eigenvector of $P$ with eigenvalue 1:
+
+$$\pi = \pi P.$$
+
+This is called an *invariant* or a *stationary* distribution.
+
+## Which Markov Chains Have Stationary Distributions?
+
+While not all Markov chains have a stationary distribution (this requires a property called **ergodicity**), the goal of any MCMC algorithm is to construct a chain where the stationary distribution $\pi(\cdot)$ is the target $f(\cdot)$.
+
+This means that if you're using a "standard" algorithm, the existence of a stationary distribution for the produced Markov chain is mathematically guaranteed.
+
+## Limiting Distributions are Stationary
+
+For an ergodic chain, the limiting distribution is the unique stationary distribution (we won't prove uniqueness):
+
+\begin{align}
+\pi_j &= \lim_{t \to \infty} \mathbb{P}(X_t = s_j | X_0 = s_i) \\
+&= \lim_{t \to \infty} (P^{t+1})_{ij} = \lim_{t \to \infty} (P^tP)_{ij} \\
+&= \lim_{t \to \infty} \sum_d (P^t)_{id} P_{dj} \\
+&= \sum_d \pi_d P_{dj}
+\end{align}
+
+## Transient Portion of the Chain
+
+The portion of the chain prior to convergence to the stationary distribution is called the **transient** portion. 
+
+```{julia}
+#| echo: true
+#| output: true
+#| code-fold: true
+#| fig-align: center
+#| label: fig-markov-transient
+#| fig-cap: Transient portion of the weather Markov chain.
+
+vspan!(p, [0, 4], color=:red, alpha=0.3, label="Transient Portion")
+```
+
+# MCMC Overview
+
+## Idea of Sampling Algorithm
+
+The idea of our sampling algorithm (which we will discuss next time) is to construct an ergodic Markov chain from the detailed balance equation for the target distribution. 
+
+- Detailed balance implies that the target distribution is the stationary distribution.
+- Ergodicity implies that this distribution is unique and can be obtained as the limiting distribution of the chain's dynamics.
+
+## Idea of Sampling Algorithm
+
+In other words: 
+
+- Generate an appropriate Markov chain so that its stationary distribution of the target distribution $\pi$;
+- Run its dynamics long enough to converge to the stationary distribution;
+- Use the resulting ensemble of states as Monte Carlo samples from $\pi$ .
+
+## Sampling Algorithm
+
+Any algorithm which follows this procedure is a Markov chain Monte Carlo algorithm.
+
+**Good news**: These algorithms are designed to work quite generally, without (*usually*) having to worry about technical details like detailed balance and ergodicity.
+
+**Bad news**: They *can* involve quite a bit of tuning for computational efficiency. Some algorithms or implementations are faster/adaptive to reduce this need.
+
+## Sampling Algorithm
+
+**Annoying news**: 
+
+- Convergence to the stationary distribution is only guaranteed asymptotically; evaluating if the chain has been run long enough requires lots of heuristics.
+- Due to Markovian property, samples are autocorrelated, so smaller "effective sample size" than the raw number of samples.
+
+## What Is The Upshot?
+
+Given a Markov chain $\{X_t\}_{t=1, \ldots, T}$ returned from MCMC, sampling from distribution $\pi$:
+
+- $\mathbb{P}(X_t = y) \to \pi(y)$ as $t \to \infty$
+- This means the chain can be considered a *dependent* sample approximately distributed from $\pi$.
+- The first values (the *transient portion*) of the chain are highly dependent on the initial value.
+
+## History of MCMC
+
+![Metropolis et al](figures/metropolis_etal_title.png)
+
+::: {.quote}
+> "...instead of choosing configurations randomly, then weighting them with $\exp(- E/ kT)$, we choose configurations with a probability $\exp (- E/ kT)$ and weight them evenly."
+:::
+
+## There Are Many MCMC Algorithms
+
+Originally: Metropolis (then Metropolis-Hastings, but really **Rosenbluth**), based on random walks.
+
+Many innovations in the last decade: best methods use gradients.
+
+These days, no real reason to not use **Hamiltonian Monte Carlo** (default in `pyMC3`, `Turing`, `Stan`, other probabilistic programming languages).
+
+# Sampling With MCMC Using A PPL
+
+## San Francisco Tide Gauge Data
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-fold: true
+#| code-overflow: wrap
+#| fig-align: center
+#| label: fig-surge-data
+#| fig-cap: Annual maxima surge data from the San Francisco, CA tide gauge.
+
+# read in data and get annual maxima
+function load_data(fname)
+    date_format = DateFormat("yyyy-mm-dd HH:MM:SS")
+    # This uses the DataFramesMeta.jl package, which makes it easy to string together commands to load and process data
+    df = @chain fname begin
+        CSV.read(DataFrame; header=false)
+        rename("Column1" => "year", "Column2" => "month", "Column3" => "day", "Column4" => "hour", "Column5" => "gauge")
+        # need to reformat the decimal date in the data file
+        @transform :datetime = DateTime.(:year, :month, :day, :hour)
+        # replace -99999 with missing
+        @transform :gauge = ifelse.(abs.(:gauge) .>= 9999, missing, :gauge)
+        select(:datetime, :gauge)
+    end
+    return df
+end
+
+dat = load_data("data/surge/h551.csv")
+
+# detrend the data to remove the effects of sea-level rise and seasonal dynamics
+ma_length = 366
+ma_offset = Int(floor(ma_length/2))
+moving_average(series,n) = [mean(@view series[i-n:i+n]) for i in n+1:length(series)-n]
+dat_ma = DataFrame(datetime=dat.datetime[ma_offset+1:end-ma_offset], residual=dat.gauge[ma_offset+1:end-ma_offset] .- moving_average(dat.gauge, ma_offset))
+
+# group data by year and compute the annual maxima
+dat_ma = dropmissing(dat_ma) # drop missing data
+dat_annmax = combine(dat_ma -> dat_ma[argmax(dat_ma.residual), :], groupby(DataFrames.transform(dat_ma, :datetime => x->year.(x)), :datetime_function))
+delete!(dat_annmax, nrow(dat_annmax)) # delete 2023; haven't seen much of that year yet
+rename!(dat_annmax, :datetime_function => :Year)
+select!(dat_annmax, [:Year, :residual])
+dat_annmax.residual = dat_annmax.residual / 1000 # convert to m
+
+# make plots
+p1 = plot(
+    dat_annmax.Year,
+    dat_annmax.residual;
+    xlabel="Year",
+    ylabel="Annual Max Tide Level (m)",
+    label=false,
+    marker=:circle,
+    markersize=5,
+    tickfontsize=16,
+    guidefontsize=18
+)
+p2 = histogram(
+    dat_annmax.residual,
+    normalize=:pdf,
+    orientation=:horizontal,
+    label=:false,
+    xlabel="PDF",
+    ylabel="",
+    yticks=[],
+    tickfontsize=16,
+    guidefontsize=18
+)
+
+l = @layout [a{0.7w} b{0.3w}]
+plot(p1, p2; layout=l, link=:y, ylims=(1, 1.7), bottom_margin=5mm, left_margin=5mm)
+plot!(size=(1000, 450))
+```
+
+## Probability Model
+
+$$
+\begin{align*}
+& y \sim LogNormal(\mu, \sigma) \tag{likelihood}\\
+& \left. \begin{aligned} 
+& \mu \sim Normal(0, 0.5) \\
+& \sigma \sim HalfNormal(0, 0.1)
+\end{aligned} \right\} \tag{priors}
+\end{align*}
+$$
+
+## Specifying Extreme Example with `Turing.jl`
+
+```{julia}
+#| echo: true
+#| output: false
+#| code-line-numbers: "|4|5-7|8-9|10-11|"
+
+using Turing
+## y: observed data
+## can also specify covariates or auxiliary data in the function if used
+@model function tide_model(y)
+    # specify priors
+    μ ~ Normal(0, 0.5)
+    σ ~ truncated(Normal(0, 0.1), 0, Inf)
+    # specify likelihood
+    y ~ LogNormal(μ, σ)
+    # returning y allows us (later) to generate predictive simulations
+    return y 
+end
+```
+
+## Sampling from Posterior
+
+```{julia}
+#| echo: true
+#| code-fold: true
+
+m = tide_model(dat_annmax.residual)
+# draw 10_000 samples using NUTS() sampler, with 4 chains (using MCMCThreads() for serial sampling)
+chn = sample(m, NUTS(), MCMCThreads(), 10_000, 4, progress=false)
+```
+
+## What Does This Output Mean?
+
+- **MCSE**: Monte Carlo Standard Error for mean.
+- **ESS (Effective Sample Size)**: Accounts for autocorrelation $\rho_t$ across samples
+  $$N_\text{eff} = \frac{N}{1+2\sum_{t=1}^\infty \rho_t}$$
+- **Rhat**: Convergence metric (@Gelman1992-da) based on multiple chains. Compares the variance across and between chains. The closer to 1 the better.
+
+## Visualizing the Sampler
+
+```{julia}
+#| label: fig-posterior-visual
+#| fig-cap: Posterior samples from Turing.jl
+#| echo: true
+#| code-fold: true
+
+
+plot(chn, size=(1200, 500))
+```
+
+# Assessing Convergence
+
+## What Can Go Wrong?
+
+::: {.center}
+![MCMC Sampling for Various Proposals](figures/mcmc-trace.svg)
+:::
+
+## Autocorrelation of Chains
+
+::: {.center}
+![MCMC Sampling for Various Proposals](figures/mh-acplot.svg){width=80%}
+:::
+
+
+## How To Identify Convergence?
+
+**Short answer**: There is no guarantee! Judgement based on an accumulation of evidence from various heuristics.
+
+- The good news &mdash; getting the precise "right" end of the transient chain doesn't matter. 
+- If a few transient iterations remain, the effect will be washed out with a large enough post-convergence chain.
+
+## Heuristics for Convergence
+
+Compare distribution (histogram/kernel density plot) after half of the chain to full chain.
+
+::: {#fig-convergence layout-ncol=2}
+![2000 Iterations](figures/mh-densitycheck-2000.svg){width=100%}
+
+![10000 Iterations](figures/mh-densitycheck-10000.svg){width=100%}
+
+:::
+
+## Gelman-Rubin Diagnostic
+
+@Gelman1992-da
+
+- Run multiple chains from "overdispersed" starting points
+- Compare intra-chain and inter-chain variances
+- Summarized as $\hat{R}$ statistic: closer to 1 implies better convergence.
+- Can also check distributions across multiple chains vs. the half-chain check.
+
+## On Multiple Chains
+
+Unless a specific scheme is used, multiple chains are not a solution for issues of convergence, as each individual chain needs to converge and have burn-in discarded/watered-down. 
+
+This means multiple chains are more useful for diagnostics, but once they've all been run long enough, can mix samples freely.
+
+
+## Heuristics for Convergence
+
+- If you're more interested in the mean estimate, can also look at the its stability by iteration or the *Monte Carlo standard error*.
+- Look at traceplots; do you see sudden "jumps"?
+- **When in doubt, run the chain longer.**
+
+## Transient Chain Portion
+
+What do we do with the transient portion of the chain?
+
+::: {.fragment .fade-in}
+- Discard as *burn-in* (might be done automatically by a PPL);
+- Just run the chain longer.
+:::
+
+# Key Points and Upcoming Schedule
+
+## Key Points (Bayesian Computing)
+
+- Bayesian computation is difficult because we need to sample from effectively arbitrary distributions.
+- Markov chains provide a path forward if we can construct a chain satisfying detailed balance whose stationary distribution is the target distribution.
+- Then a post-convergence chain of samples is the same as a *dependent* Monte Carlo set of samples.
+
+## Key Points (MCMC Convergence)
+
+- Must rely on "accumulation of evidence" from heuristics for determination about convergence to stationary distribution.
+- Transient portion of chain: Meh. Some people worry about this too much. Discard or run the chain longer.
+- Parallelizing solves few problems, but running multiple chains can be useful for diagnostics.
+
+## Next Classes
+
+**Wednesday**: Markov Chains and Bayesian Computation 
+
+**Next Week** (plan): Model Evaluation
+
+## Assessments
+
+- **Homework 3**: Due Friday (3/14)
+- **Project Proposal**: Due 3/21
+
+# References
+
+## References (Scroll for Full List)

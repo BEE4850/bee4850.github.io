@@ -1,5 +1,5 @@
 ---
-title: "The Bootstrap"
+title: "Uncertainty Quantification and The Bootstrap"
 subtitle: "Lecture 12"
 author: "Vivek Srikrishnan"
 course: "BEE 4850"
@@ -84,10 +84,17 @@ default(
 
 ## Monte Carlo Simulation
 
-- **Monte Carlo Principle**: Approximate $$\mathbb{E}_p[f(X)] = \int f(x) p(x) dx \approx \frac{1}{n} \sum_{i=1}^n f(X_i)$$
-- Monte Carlo is an unbiased estimator, but beware (and always report) the standard error.
+- **Monte Carlo Principle**: Approximate $$\mathbb{E}_f[h(X)] = \int h(x) f(x) dx \approx \frac{1}{n} \sum_{i=1}^n h(X_i)$$
+- Monte Carlo is an unbiased estimator, but beware (and always report) the standard error $\sigma_n = \sigma_Y / \sqrt{n}$ or confidence intervals.
+- More advanced methods can reduce variance, but may be difficult to implement in practice.
 
-# The Bootstrap
+## Uses of Monte Carlo
+
+- Estimate expectations / quantiles;
+- Calculate deterministic quantities (framed as stochastic expectations);
+- Optimization (**problem 3 on HW3**).
+
+# Sampling Distributions
 
 ## So Far...
 
@@ -109,25 +116,58 @@ The **sampling distribution** of a statistic captures the uncertainty associated
 ## Estimating Sampling Distributions
 
 - **Special Cases**: can derive closed-form representations of sampling distributions (think statistical tests)
-- **Asymptotics**: Central Limit Theorem
+- **Asymptotics**: Central Limit Theorem or Fisher Information
 
-But is there a more general approach?
+## Fisher Information
+
+:::: {.columns}
+::: {.column width=50%}
+
+**Fisher Information**: $$\mathcal{I}_x(\theta) = -\mathbb{E}\left[\frac{\partial^2}{\partial \theta_i \partial \theta_j} \log \mathcal{L}(\theta | x)\right]$$
+
+***Observed* Fisher Information** (uses observed data and calculated at the MLE): $$\mathcal{I}_\tilde{x}(\hat{\theta})$$
+:::
+::: {.column width=50%}
+```{julia}
+#| label: fig-fisher-information
+#| fig-cap: Examples of Fisher Information
+
+θ = -0.5:0.01:5
+fi1(θ) = log(-(θ - 2)^4 + 3 * (θ + 2) + 80)
+p1 = plot(θ, fi1.(θ), lw=3, label="Log-Likelihood", size=(500, 400))
+pts = [2 4.5]
+labels = ["Small FI" "High FI"]
+scatter!(p1, pts, fi1.(pts), label=labels, markersize=5)
+```
+:::
+::::
+
+## Fisher Information and Standard Errors
+
+Asymptotic result: $$\sqrt{n}(\theta_\text{MLE} - \theta^*) \to N(0, \left(\mathcal{I}_x(\hat{\theta^*})\right)^{-1}$$
+
+Sampling distribution based on observed data: $$\theta \sim N\left(\hat{\theta}_\text{MLE}, \left(n\mathcal{I}_\tilde{x}(\theta_\text{MLE})\right)^{-1}\right)$$
+
+## Estimating Fisher Information
+
+- Can be done with automatic differentiation or (sometimes hard) calculations;
+- May be singular (no inverse \Rightarrow; undefined standard errors) for complex models;
+- May not be a good approximation of the variance for finite samples!
+
+# The Bootstrap
 
 ## The Bootstrap Principle
 
 :::: {.columns}
-::: {.column width=60%}
+::: {.column width=50%}
 @Efron1979-zv suggested combining estimation with simulation: the **bootstrap**.
 
 **Key idea**: use the data to simulate a data-generating mechanism.
 :::
-::: {.column width=40%}
+::: {.column width=50%}
 ::: {.center}
-![Baron von Munchhausen Pulling Himself By His Hair](https://upload.wikimedia.org/wikipedia/commons/3/3b/Muenchhausen_Herrfurth_7_500x789.jpg){width=60%}
+![Xxibit Bootstrap Meme](memes/xxibit_bootstrap.png)
 
-::: {.caption}
-Source: [Wikipedia](https://en.wikipedia.org/wiki/M%C3%BCnchhausen_trilemma)
-:::
 :::
 :::
 ::::
@@ -138,10 +178,11 @@ Source: [Wikipedia](https://en.wikipedia.org/wiki/M%C3%BCnchhausen_trilemma)
 :::: {.columns}
 ::: {.column width=40%}
 
-Assumes the existing data is representative of the "true" population, and can simulate based on properties of the data itself, then re-estimate statistics of interest from re-samples.
+- Assume the existing data is representative of the "true" population, 
+- Simulate based on properties of the data itself
+- Re-estimate statistics from re-samples.
 
 :::
-::: {.column width=60%}
 ::: {.column width=60%}
 ![Bootstrap Sampling Distribution](figures/npboot-sampling.png)
 :::
@@ -166,13 +207,14 @@ Let $t_0$ the "true" value of a statistic, $\hat{t}$ the estimate of the statist
 - Bias Correction: $\mathbb{E}[\hat{t}] - t_0 \approx \mathbb{E}[\tilde{t}] - \hat{t}$
 :::
 
+::: {.fragment .fade-in}
 Notice that bias correction "shifts" away from the bootstrapped samples.
+:::
 
 ## "Simple" Bootstrap Confidence Intervals
 
 - **Basic Bootstrap CIs** (based on CLT for error distribution $\tilde{t} - \hat{t}$): $$\left(\hat{t} - (Q_{\tilde{t}}(1-\alpha/2) - \hat{t}), \hat{t} - (Q_{\tilde{t}}(\alpha/2) - \hat{t})\right)$$
-- **Percentile Bootstrap CIs** (simplest, often wrong coverage): $(Q_{\tilde{t}}(1-\alpha/2), Q_{\tilde{t}}(1-\alpha/2))$
-- **Bias Corrected and Accelerated CIs (BCa)** (use for bias-corrected and skewed distributions): complicated formula, relies on transforms between normal CDF and bootstrapped statistic CDF as well as estimates of "acceleration" parameter.
+- **Percentile Bootstrap CIs** (simplest, often wrong coverage): $$(Q_{\tilde{t}}(1-\alpha/2), Q_{\tilde{t}}(1-\alpha/2))$$
 
 # The Non-Parametric Bootstrap
 
@@ -234,27 +276,13 @@ end
 boot_out = coin_boot_freq(dat, 1000)
 q_boot = 2 * freq_dat .- quantile(boot_out, [0.975, 0.025])
 
-p = histogram(boot_out, xlabel="Heads Frequency", ylabel="Count", title="1000 Bootstrap Samples", titlefontsize=20, guidefontsize=18, tickfontsize=16, legendfontsize=16, label=false, bottom_margin=7mm, left_margin=5mm, right_margin=5mm)
+p = histogram(boot_out, xlabel="Heads Frequency", ylabel="Count", title="1000 Bootstrap Samples", label=false, right_margin=5mm)
 vline!(p, [p_true], linewidth=3, color=:orange, linestyle=:dash, label="True Probability")
 vline!(p, [mean(boot_out) ], linewidth=3, color=:red, linestyle=:dash, label="Bootstrap Mean")
 vline!(p, [freq_dat], linewidth=3, color=:purple, linestyle=:dot, label="Observed Frequency")
 vspan!(p, q_boot, linecolor=:grey, fillcolor=:grey, alpha=0.3, fillalpha=0.3, label="95% CI")
 plot!(p, size=(1000, 450))
 ```
-
-## Why Use The Non-Parametric Bootstrap?
-
-- Do not need to rely on variance asymptotics;
-- Can obtain non-symmetric CIs.
-- Embarrassingly parallel to simulate new replicates and generate statistics.
-
-## When Can't You Use The Non-Parametric Bootstrap
-
-- Maxima/minima
-- Very extreme values.
-
-Generally, anything very sensitive to outliers which might not be re-sampled.
-
 
 ## Larger Sample Example
 
@@ -278,6 +306,21 @@ vline!(p, [freq_dat], linewidth=3, color=:purple, linestyle=:dot, label="Observe
 vspan!(p, q_boot, linecolor=:grey, fillcolor=:grey, alpha=0.3, fillalpha=0.3, label="95% CI")
 plot!(p, size=(1000, 450))
 ```
+
+
+## Why Use The Non-Parametric Bootstrap?
+
+- Do not need to rely on variance asymptotics;
+- Can obtain non-symmetric CIs.
+- Embarrassingly parallel to simulate new replicates and generate statistics.
+
+## When Can't You Use The Non-Parametric Bootstrap
+
+- Maxima/minima
+- Very extreme values.
+
+Generally, anything very sensitive to outliers which might not be re-sampled.
+
 
 ## Bootstrapping with Structured Data
 

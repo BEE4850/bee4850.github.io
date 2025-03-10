@@ -1,0 +1,627 @@
+---
+title: "The Parametric Bootstrap"
+subtitle: "Lecture 13"
+author: "Vivek Srikrishnan"
+course: "BEE 4850"
+institution: "Cornell University"
+date: "March 10, 2024"
+format:
+    revealjs:
+        slide-number: c/t
+        show-slide-number: all
+        center-title-slide: true
+        width: 1280
+        height: 720
+        transition: none
+        toc: true
+        toc-depth: 1
+        toc-title: "Overview"
+        history: false
+        link-external-newwindow: true
+        theme: ../sass/slides.scss
+        template-partials:
+            - title-slide.html
+        menu:
+            numbers: true
+        html-math-method: mathjax
+        include-in-header: mathjax-config.html
+        date-format: long
+        email-obfuscation: javascript
+        chalkboard:
+            theme: whiteboard
+            buttons: true
+        mermaid: 
+            theme: dark
+engine: julia
+filters:
+  - code-fullscreen
+---
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+#| output: false
+
+using Random
+using DataFrames
+using DataFramesMeta
+using CSV
+using Dates
+using Distributions
+using ColorSchemes
+using Plots
+using StatsPlots
+using StatsBase
+using Optim
+using LaTeXStrings
+using Measures
+using PrettyTables
+
+Random.seed!(1)
+
+plot_font = "Computer Modern"
+default(
+    fontfamily=plot_font,
+    linewidth=3, 
+    framestyle=:box, 
+    label=nothing, 
+    grid=false,
+    guidefontsize=18,
+    legendfontsize=16,
+    tickfontsize=16,
+    titlefontsize=20,
+    bottom_margin=10mm,
+    left_margin=5mm
+)
+```
+
+# Last Class
+
+## The Bootstrap 
+
+:::: {.columns}
+::: {.column width=60%}
+@Efron1979-zv suggested combining estimation with simulation: the **bootstrap**.
+
+**Key idea**: use the data to simulate a data-generating mechanism.
+:::
+::: {.column width=40%}
+::: {.center}
+![Baron von Munchhausen Pulling Himself By His Hair](https://upload.wikimedia.org/wikipedia/commons/3/3b/Muenchhausen_Herrfurth_7_500x789.jpg){width=60%}
+
+::: {.caption}
+Source: [Wikipedia](https://en.wikipedia.org/wiki/M%C3%BCnchhausen_trilemma)
+:::
+:::
+:::
+::::
+
+## Why Does The Bootstrap Work?
+
+Let $t_0$ the "true" value of a statistic, $\hat{t}$ the estimate of the statistic from the sample, and $(\tilde{t}_i)$ the bootstrap estimates.
+
+- Variance: $\text{Var}[\hat{t}] \approx \text{Var}[\tilde{t}]$
+- Then the bootstrap error distribution approximates the sampling distribution
+  $$(\tilde{t}_i - \hat{t}) \overset{\mathcal{D}}{\sim} \hat{t} - t_0$$
+
+
+## The Non-Parametric Bootstrap
+
+:::: {.columns}
+::: {.column width=40%}
+The non-parametric bootstrap is the most "naive" approach to the bootstrap: **resample-then-estimate**.
+:::
+::: {.column width=60%}
+![Non-Parametric Bootstrap](figures/npboot-sampling.png)
+:::
+::::
+
+## Approaches to Bootstrapping Structured Data
+
+- **Correlations**: Transform to uncorrelated data (principal components, etc.), sample, transform back.
+- **Time Series**: Block bootstrap
+
+## Sources of Non-Parametric Bootstrap Error
+
+1. **Sampling error**: error from using finitely many replications
+2. **Statistical error**: error in the bootstrap sampling distribution approximation
+
+
+# The Parametric Bootstrap
+
+## The Parametric Bootstrap
+
+- **Non-Parametric Bootstrap**: Resample directly from the data.
+- **Parametric Bootstrap**: Fit a model to the original data and simulate new samples, then calculate bootstrap estimates.
+
+This lets us use additional information, such as a simulation or statistical model, instead of relying only on the empirical CDF.
+
+## Parametric Bootstrap Scheme
+
+:::: {.columns}
+::: {.column width=40%}
+The parametric bootstrap generates pseudodata using **simulations from a fitted model**.
+:::
+::: {.column width=60%}
+![Parametric Bootstrap](figures/pboot-sampling.png)
+:::
+::::
+
+
+## Benefits of the Parametric Bootstrap
+
+- Can quantify uncertainties in parameter values
+- Deals better with structured data (model accounts for structure)
+- Can look at statistics which are limited by resimulating from empirical CDF.
+
+## Potential Drawbacks
+
+- New source of error: **model specification**
+- Misspecified models can completely distort estimates.
+
+# Example: 100-Year Return Periods
+
+## Tide Gauge Data
+
+Detrended San Francisco Tide Gauge Data:
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-fold: true
+#| code-overflow: wrap
+#| fig-align: center
+#| label: fig-surge-data-detrend
+#| fig-cap: Annual maxima surge data from the San Francisco, CA tide gauge.
+
+# read in data and get annual maxima
+function load_data(fname)
+    date_format = DateFormat("yyyy-mm-dd HH:MM:SS")
+    # This uses the DataFramesMeta.jl package, which makes it easy to string together commands to load and process data
+    df = @chain fname begin
+        CSV.read(DataFrame; header=false)
+        rename("Column1" => "year", "Column2" => "month", "Column3" => "day", "Column4" => "hour", "Column5" => "gauge")
+        # need to reformat the decimal date in the data file
+        @transform :datetime = DateTime.(:year, :month, :day, :hour)
+        # replace -99999 with missing
+        @transform :gauge = ifelse.(abs.(:gauge) .>= 9999, missing, :gauge)
+        select(:datetime, :gauge)
+    end
+    return df
+end
+
+dat = load_data("data/surge/h551.csv")
+
+# detrend the data to remove the effects of sea-level rise and seasonal dynamics
+ma_length = 366
+ma_offset = Int(floor(ma_length/2))
+moving_average(series,n) = [mean(@view series[i-n:i+n]) for i in n+1:length(series)-n]
+dat_ma = DataFrame(datetime=dat.datetime[ma_offset+1:end-ma_offset], residual=dat.gauge[ma_offset+1:end-ma_offset] .- moving_average(dat.gauge, ma_offset))
+
+# group data by year and compute the annual maxima
+dat_ma = dropmissing(dat_ma) # drop missing data
+dat_annmax = combine(dat_ma -> dat_ma[argmax(dat_ma.residual), :], groupby(transform(dat_ma, :datetime => x->year.(x)), :datetime_function))
+delete!(dat_annmax, nrow(dat_annmax)) # delete 2023; haven't seen much of that year yet
+rename!(dat_annmax, :datetime_function => :Year)
+select!(dat_annmax, [:Year, :residual])
+dat_annmax.residual = dat_annmax.residual / 1000 # convert to m
+
+# make plots
+p1 = plot(
+    dat_annmax.Year,
+    dat_annmax.residual;
+    xlabel="Year",
+    ylabel="Annual Max Tide (m)",
+    label=false,
+    marker=:circle,
+    markersize=5
+)
+p2 = histogram(
+    dat_annmax.residual,
+    normalize=:pdf,
+    orientation=:horizontal,
+    label=:false,
+    xlabel="PDF",
+    ylabel="",
+    yticks=[]
+)
+
+l = @layout [a{0.7w} b{0.3w}]
+plot(p1, p2; layout=l, link=:y, ylims=(1, 1.7), bottom_margin=10mm, left_margin=5mm)
+plot!(size=(1000, 400))
+```
+
+## Parametric Bootstrap Strategy
+
+1. Fit/calibrate model
+2. Compute statistic of interest 
+3. Repeat $N$ times:
+   1. Resample values from fitted model
+   2. Calculate statistic.
+4. Compute mean/confidence intervals from distribution of bootstrapped statistics.
+
+## Parametric Bootstrap Results
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-fold: true
+#| code-overflow: wrap
+#| fig-align: center
+#| label: fig-surge-fitted
+#| fig-cap: Fitted GEV Distribution
+
+# function to fit GEV model for each data set
+init_θ = [1.0, 1.0, 0.0]
+lb = [0.0, 0.0, -2.0]
+ub = [5.0, 10.0, 2.0]
+loglik_gev(θ) = -sum(logpdf(GeneralizedExtremeValue(θ[1], θ[2], θ[3]), dat_annmax.residual))
+
+# get estimates from observations
+rp_emp = quantile(dat_annmax.residual, 0.99)
+θ_gev = Optim.optimize(loglik_gev, lb, ub, init_θ).minimizer
+
+p = histogram(dat_annmax.residual,  normalize=:pdf, xlabel="Annual Maximum Storm Tide (m)", ylabel="Probability Density", label=false, right_margin=5mm)
+plot!(p, GeneralizedExtremeValue(θ_gev[1], θ_gev[2], θ_gev[3]), linewidth=3, label="Parametric Model", color=:orange)
+vline!(p, [rp_emp], color=:red, linewidth=3, linestyle=:dash, label="Empirical Return Level")
+vline!(p, [quantile(GeneralizedExtremeValue(θ_gev[1], θ_gev[2], θ_gev[3]), 0.99)], color=:blue, linewidth=3, linestyle=:dash, label="Model Return Level")
+xlims!(p, 1, 2)
+```
+
+## Adding Bootstrap Samples
+
+```{julia}
+#| echo: true
+#| code-fold: true
+#| label: fig-surge-boot1
+#| fig-cap: Initial bootstrap sample
+#| fig-align: center
+
+n_boot = 1000
+boot_samp = rand(GeneralizedExtremeValue(θ_gev[1], θ_gev[2], θ_gev[3]), (nrow(dat_annmax), n_boot))
+rp_boot = mapslices(col -> quantile(col, 0.99), boot_samp, dims=1)'
+
+pfit = plot(GeneralizedExtremeValue(θ_gev[1], θ_gev[2], θ_gev[3]), color=:darkorange, linewidth=3, label="GEV Model", xlabel="Annual Maximum Storm Tide (m)", ylabel="Probability Density", right_margin=5mm)
+vline!(pfit, [rp_emp], color=:black, linewidth=3, linestyle=:dash, label="Empirical Return Level")
+xlims!(pfit, 1, 1.75)
+scatter!(pfit, rp_boot[:, 1], zeros(nrow(dat_annmax)), color=:orange, label="GEV Bootstrap Replicates", markersize=3, alpha=0.3)
+vline!(pfit, [mean(rp_boot)], color=:orange, linewidth=3, label="GEV Bootstrap Estimate")
+vline!(pfit, [2 * rp_emp - mean(rp_boot)], color=:orange, linewidth=3, linestyle=:dot, label="Bias-Corrected Estimate (GEV)")
+```
+
+## Bootstrap Confidence Interval
+
+```{julia}
+#| echo: true
+#| code-fold: true
+#| label: fig-surge-boot-hsit
+#| fig-cap: Bootstrap histogram
+#| fig-align: center
+
+phist = histogram(rp_boot, xlabel="100-Year Return Period Estimate (m)", ylabel="Count", right_margin=5mm, label="GEV Bootstrap Samples", color=:darkorange, alpha=0.4)
+vline!(phist, [rp_emp], color=:black, linewidth=3, linestyle=:dash, label="Empirical Estimate")
+q_boot = 2 * rp_emp .- quantile(rp_boot, [0.975, 0.025])
+vline!(phist, [mean(rp_boot)], color=:red, linestyle=:dash, linewidth=3, label="GEV Bootstrap Estimate")
+vline!(phist, [2 * rp_emp - mean(rp_boot)], color=:red, linestyle=:dot, linewidth=3, label="Bias-Corrected GEV Estimate")
+vspan!(phist, q_boot, linecolor=:orange, fillcolor=:orange, lw=3, alpha=0.3, fillalpha=0.3, label="95% GEV Bootstrap CI")
+```
+
+## When To Use The Parametric Bootstrap?
+
+- Reasonable to specify model (but uncertain about parameters/statistics);
+- Interested in statistics where model provides needed structure (e.g. extremes, dependent data);
+
+## Impact of Model Choice
+
+```{julia}
+#| echo: true
+#| code-fold: true
+#| label: fig-surge-boot-models
+#| fig-cap: Bootstrap histogram with model mis-specification
+#| fig-align: center
+#| layout-ncol: 2
+
+## re-do bootstrap with lognormal distribution
+# function to fit GEV model for each data set
+init_θ = [1.0, 1.0]
+lb = [0.0, 0.0]
+ub = [5.0, 10.0]
+loglik_ln(θ) = -sum(logpdf(LogNormal(θ[1], θ[2]), dat_annmax.residual))
+θ_ln = Optim.optimize(loglik_ln, lb, ub, init_θ).minimizer
+
+boot_samp_ln = rand(LogNormal(θ_ln[1], θ_ln[2]), (nrow(dat_annmax), n_boot))
+rp_boot_ln = mapslices(col -> quantile(col, 0.99), boot_samp_ln, dims=1)'
+q_boot_ln = 2 * rp_emp .- quantile(rp_boot_ln, [0.975, 0.025])
+
+## plot confidence intervals and estimates
+## GEV fit
+pfit = plot(GeneralizedExtremeValue(θ_gev[1], θ_gev[2], θ_gev[3]), color=:darkorange, linewidth=3, label="GEV Model", xlabel="Annual Maximum Storm Tide (m)", ylabel="Probability Density", right_margin=5mm)
+vline!(pfit, [rp_emp], color=:black, linewidth=3, linestyle=:dash, label="Empirical Return Level")
+xlims!(pfit, 1, 1.75)
+vline!(pfit, [mean(rp_boot)], color=:orange, linewidth=3, label=false)
+vline!(pfit, [2 * rp_emp - mean(rp_boot)], color=:orange, linewidth=3, linestyle=:dot, label=false)
+## lognormal fit
+plot!(pfit, LogNormal(θ_ln[1], θ_ln[2]), color=:darkgreen, lw=3, label="LogNormal Model")
+vline!(pfit, [mean(rp_boot_ln)], color=:green, linewidth=3, label=false)
+vline!(pfit, [2 * rp_emp - mean(rp_boot_ln)], color=:green, linewidth=3, linestyle=:dot, label=false)
+plot!(pfit, size=(550, 550))
+
+## GEV histogram
+phist = histogram(rp_boot, xlabel="100-Year Return Period Estimate (m)", ylabel="Count", right_margin=5mm, legend=false, color=:darkorange, alpha=0.4)
+vline!(phist, [2 * rp_emp - mean(rp_boot)], color=:red, linestyle=:dot, linewidth=3)
+vspan!(phist, q_boot, linecolor=:orange, fillcolor=:orange, lw=3, alpha=0.3, fillalpha=0.3)
+histogram!(phist, rp_boot_ln, fillcolor=:green, alpha=0.3, label="LN Bootstrap Samples")
+vline!(phist, [2 * rp_emp - mean(rp_boot_ln)], color=:purple, linestyle=:dot, linewidth=3)
+vspan!(phist, q_boot_ln, linecolor=:darkgreen, fillcolor=:darkgreen, lw=3, alpha=0.3, fillalpha=0.3)
+plot!(phist, size=(550, 550))
+
+display(pfit)
+display(phist)
+
+
+```
+
+# Comparison of Parametric and Non-Parametric Bootstrap
+
+## Streamflow-TDS Regression Example
+
+:::: {.columns}
+::: {.column width=50%}
+```{julia}
+tds = let
+	fname = "data/tds/cuyaTDS.csv" 
+	tds = DataFrame(CSV.File(fname))
+	tds[!, [:date, :discharge_cms, :tds_mgL]]
+end
+p = scatter(
+	tds.discharge_cms,
+	tds.tds_mgL,
+	xlabel=L"Discharge (m$^3$/s)",
+	ylabel="Total dissolved solids (mg/L)",
+    markersize=5,
+	label="Observations",
+    xaxis=:log
+)
+plot!(p, size=(600, 600))
+```
+:::
+::: {.column width=50%}
+$$S \sim \mathcal{N}(\beta_0 + \beta_1 \log(D), \sigma^2)$$
+:::
+::::
+
+## Parametric Bootstrapping
+
+```{julia}
+#| echo: true
+#| code-fold: true
+#| label: fig-parametric-tds-fit
+#| fig-cap: Fitted regression model for the parametric model.
+#| layout-ncol: 2
+
+# tds_riverflow_loglik: function to compute the log-likelihood for the tds model
+# θ: vector of model parameters (coefficients β₀ and β₁ and stdev σ)
+# tds, flow: vectors of data
+function tds_riverflow_loglik(θ, tds, flow)
+    β₀, β₁, σ = θ # unpack parameter vector
+    μ = β₀ .+ β₁ * log.(flow) # find mean
+    ll = sum(logpdf.(Normal.(μ, σ), tds)) # compute log-likelihood
+    return ll
+end
+
+lb = [0.0, -1000.0, 1.0]
+ub = [1000.0, 1000.0, 100.0]
+θ₀ = [500.0, 0.0, 50.0]
+optim_out = Optim.optimize(θ -> -tds_riverflow_loglik(θ, tds.tds_mgL, tds.discharge_cms), lb, ub, θ₀)
+θ_mle = round.(optim_out.minimizer; digits=0)
+
+xspan = 0.1:0.1:52
+model_fit(x, θ) = θ[1] .+ θ[2] * log.(x)
+plot!(p, xspan, model_fit(xspan, θ_mle), label="Fitted Regression")
+xlims!(p, 3, 55)
+plot!(p, size=(550, 500))
+display(p)
+
+## get bootstrap replicates
+nboot = 1_000
+boot_samples = zeros(nrow(tds), nboot)
+boot_θ = zeros(3, nboot)
+for i = 1:nboot
+    # resample from model
+    boot_samples[:, i] = model_fit(tds.discharge_cms, θ_mle) + rand(Normal(0, θ_mle[3]), nrow(tds))
+    # refit model
+    optim_out = Optim.optimize(θ -> -tds_riverflow_loglik(θ, boot_samples[:, i], tds.discharge_cms), lb, ub, θ₀)
+    boot_θ[:, i] = optim_out.minimizer
+end
+
+
+pboot = scatter(
+	tds.discharge_cms,
+	tds.tds_mgL,
+	xlabel=L"Discharge (m$^3$/s)",
+	ylabel="Total dissolved solids (mg/L)",
+    markersize=5,
+	label="Observations",
+    color=:blue,
+    xaxis=:log,
+    alpha=0.4
+)
+scatter!(pboot,
+    tds.discharge_cms,
+    boot_samples[:, 1],
+    markersize=5,
+    color=:grey,
+    label="Bootstrap Replicate",
+    alpha=0.4
+)
+plot!(pboot, xspan, model_fit(xspan, θ_mle), label="Original Model Fit", color=:blue, lw=3)
+plot!(pboot, xspan, model_fit(xspan, boot_θ[:, 1]), label="Bootstrap Model Fit", color=:grey, lw=3)
+xlims!(pboot, 3, 55)
+plot!(pboot, size=(550, 500))
+display(pboot)
+```
+
+## Parametric Bootstrap Samples
+
+```{julia}
+#| label: fig-parametric-reg-ci
+#| fig-cap: Confidence Intervals for the TDS problem from the parametric bootstrap
+#| code-fold: true
+#| layout-ncol: 3
+
+boot_est = 2 * θ_mle - mean(boot_θ; dims=2)
+boot_q = mapslices(v -> quantile(v, [0.95, 0.05]), boot_θ; dims=2)
+boot_ci = zeros(3, 2)
+for i in eachindex(θ_mle)
+    boot_ci[i, :] = 2 * θ_mle[i] .- boot_q[i, :]
+end
+
+
+p1 = histogram(boot_θ[1, :], xlabel=L"$\beta_0$", ylabel="Count", label=false, legend=:outerbottom)
+vline!(p1, [mean(boot_θ[1, :])], color=:red, label="Bootstrap Estimate", lw=3)
+vspan!(p1, boot_ci[1, :], color=:grey, alpha=0.4, label="Bootstrap CI")
+plot!(p1, size=(425, 600))
+
+p2 = histogram(boot_θ[2, :], xlabel=L"$\beta_1$", ylabel="Count", label=false, legend=:outerbottom)
+vline!(p2, [mean(boot_θ[2, :])], color=:red, label="Bootstrap Estimate", lw=3)
+vspan!(p2, boot_ci[2, :], color=:grey, alpha=0.4, label="Bootstrap CI")
+plot!(p2, size=(425, 600), xticks=-140:20:-80)
+
+p3 = histogram(boot_θ[3, :], xlabel=L"$\sigma$", ylabel="Count", label=false, legend=:outerbottom)
+vline!(p3, [mean(boot_θ[3, :])], color=:red, label="Bootstrap Estimate", lw=3)
+vspan!(p3, boot_ci[3, :], color=:grey, alpha=0.4, label="Bootstrap CI")
+plot!(p3, size=(425, 600))
+
+display(p1)
+display(p2)
+display(p3)
+```
+
+## Parametric vs. Non-Parametric Bootstrap CIs
+
+```{julia}
+#| label: tbl-bootstrap
+#| code-fold: true
+#| echo: true
+#| output: asis
+
+# need to get non-parametric bootstrap estimates
+np_boot_θ = zeros(3, nboot)
+for i = 1:nboot
+    # resample from model
+    idx = sample(1:nrow(tds), nrow(tds); replace=true)
+    # refit model
+    optim_out = Optim.optimize(θ -> -tds_riverflow_loglik(θ, tds.tds_mgL[idx], tds.discharge_cms[idx]), lb, ub, θ₀)
+    np_boot_θ[:, i] = optim_out.minimizer
+end
+
+## find bias-corrected estimates and confidence intervals
+np_boot_est = 2 * θ_mle - mean(np_boot_θ; dims=2)
+np_boot_q = mapslices(v -> quantile(v, [0.95, 0.05]), np_boot_θ; dims=2)
+np_boot_ci = zeros(3, 2)
+for i in eachindex(θ_mle)
+    np_boot_ci[i, :] = 2 * θ_mle[i] .- np_boot_q[i, :]
+end
+
+parnames = ["β₀", "β₁", "σ"]
+boot_ci_str =  string.(Int64.(round.(boot_est; digits=0)), " (", Int64.(round.(boot_ci[:, 1]; digits=0)), ",", Int64.(round.(boot_ci[:, 2]; digits=0)), ")")
+np_boot_ci_str =  string.(Int64.(round.(np_boot_est; digits=0)), " (", Int64.(round.(np_boot_ci[:, 1]; digits=0)), ",", Int64.(round.(np_boot_ci[:, 2]; digits=0)), ")")
+pretty_table(DataFrame(Parameters=parnames, NP=vec(np_boot_ci_str), Par=vec(boot_ci_str)); backend=Val(:markdown), show_subheader=false, show_row_number=false)
+```
+
+## Which Bootstrap To Use?
+
+Parametric bootstrap estimates converge faster than non-parametric estimates.
+
+- If your parametric model is "properly" specified, parametric bootstrap gives more accurate results with the same $n$.
+- If the parametric model is mis-specified, you're rapidly converging to the wrong distribution.
+
+## Bootstrapping Residuals
+
+Can bootrap residuals from a model versus "full" parametric bootstrap:
+
+1. Fit model (statistically or numerical).
+2. Calculate residuals from deterministic/expected values.
+3. Resample residuals.
+4. Add bootstrapped residuals back to model trend to create new replicates.
+5. Refit model to replicates.
+
+
+# Last Thoughts on the Bootstrap
+
+## Bootstrap vs. Monte Carlo
+
+**Bootstrap** "if I had a different sample (*conditional on the bootstrap principle*), what could I have inferred"?
+
+**Monte Carlo**: Given specification of input uncertainty, what data could we generate?
+
+## Bootstrap Distribution and Monte Carlo
+
+Could we use a bootstrap distribution for MC?
+
+::: {.incremental}
+
+- Sure, that's just one specification of the data-generating process.
+- Nothing unique or particularly rigorous in using the bootstrap for this; substituting the bootstrap principle for other assumptions.
+
+:::
+
+## Bootstrap vs. Bayes
+
+**Bootstrap**: "if I had a different sample (*conditional on the bootstrap principle*), what could I have inferred"?
+
+**Bayesian Inference**: "what different parameters could have produced the observed data"?
+
+# Key Points
+
+## Key Points
+
+- **Bootstrap**: Use the characteristics of the data to simulate new samples.
+- Bootstrap gives idea of sampling error in statistics (including model parameters)
+- Distribution of $\tilde{t} - \hat{t}$ approximates distribution around estimate $\hat{t} - t_0$.
+- Allows us to estimate uncertainty of estimates (confidence intervals, bias, etc).
+- Parametric bootstrap introduces model specification error
+
+## Bootstrap Variants
+
+- Resample Cases (Non-Parametric)
+- Resample Residuals (from fitted model trend)
+- Simulate from Fitted Model (Parametric)
+
+## Which Bootstrap To Use?
+
+Depends on trust in model "correctness": 
+  - Do we trust the model specification to be reasonably correct?
+  - Do we trust that we have enough samples to recover the empirical CDF?
+  - Do we trust the data-generating process?
+
+# Discussion of Bankes et al (1993)
+
+## Questions to Seed Discussion
+
+- What are the practical differences between exploratory and consolidative modeling?
+- When do you think each approach is more or less appropriate?
+- How do these approaches impact the choice of your methods?
+
+# Upcoming Schedule
+
+## Next Classes
+
+**Wednesday**: Markov Chains and Bayesian Computation 
+
+**Next Week** (plan): Model Evaluation
+
+## Assessments
+
+- **Homework 3**: Due Friday (3/14)
+- **Project Proposal**: Due 3/21
+
+# References
+
+## References (Scroll for Full List)
