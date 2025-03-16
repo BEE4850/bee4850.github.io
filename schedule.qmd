@@ -29,7 +29,7 @@ Readings can be accessed using the link (when needed, through the Cornell librar
 | [8](weeks/week08.qmd) | 3/10 | The Parametric Bootstrap | [{{< fa sharp presentation-screen >}}](slides/lecture08-1-parametric-bootstrap.qmd) | Ruckert et al ([2017](https://link.springer.com/article/10.1007/s10584-016-1858-z)) | |
 |   | 3/12 | Bayesian Computing and Markov Chains | [{{< fa sharp presentation-screen >}}](slides/lecture08-2-bayesian-computation.qmd) | | |
 | [9](weeks/week09.qmd) | 3/17 | Markov Chain Monte Carlo | [{{< fa sharp presentation-screen >}}](slides/lecture09-1-mcmc.qmd) | | |
-|   | 3/19 | Predictive Model Assessments | [{{< fa sharp presentation-screen >}}](slides/lecture09-2-model-skill.qmd)  | | |
+|   | 3/19 | Predictive Model Assessments | [{{< fa sharp presentation-screen >}}](slides/lecture09-2-model-skill.qmd)  | Clark et al ([2021](https://agupubs-onlinelibrary-wiley-com.proxy.library.cornell.edu/doi/10.1029/2020WR029001)) | |
 | 10 | 3/24 |  | | | |
 |    | 3/26 |  | | | | 
 |    | 3/31 | ***Spring Break*** | 
