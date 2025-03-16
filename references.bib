@@ -518,6 +518,132 @@ The second edition emphasizes the directed acyclic graph (DAG) approach to causa
   language = {en}
 }
 
+@ARTICLE{Belkin2019-xy,
+  title = {{Two models of double descent for weak features}},
+  author = {Belkin, Mikhail and Hsu, Daniel and Xu, Ji},
+  journaltitle = {arXiv [cs.LG]},
+  date = {2019-03-18},
+  eprint = {1903.07571},
+  eprinttype = {arXiv},
+  eprintclass = {cs.LG},
+  abstract = {The "double descent" risk curve was proposed to qualitatively
+  describe the out-of-sample prediction accuracy of variably-parameterized
+  machine learning models. This article provides a precise mathematical analysis
+  for the shape of this curve in two simple data models with the least
+  squares/least norm predictor. Specifically, it is shown that the risk peaks
+  when the number of features $p$ is close to the sample size $n$, but also that
+  the risk decreases towards its minimum as $p$ increases beyond $n$. This
+  behavior is contrasted with that of "prescient" models that select features in
+  an a priori optimal order.},
+  url = {http://arxiv.org/abs/1903.07571},
+  file = {All_Papers/B/Belkin_et_al._2019_-_Two_models_of_double_descent_for_weak_features.pdf}
+}
+
+@ARTICLE{Gneiting2007-my,
+  title = {{Probabilistic Forecasts, Calibration and Sharpness}},
+  author = {Gneiting, Tilmann and {Fadoua Balabdaoui} and Raftery, Adrian E},
+  journaltitle = {J. R. Stat. Soc. Series B Stat. Methodol.},
+  publisher = {[Royal Statistical Society, Wiley]},
+  volume = {69},
+  issue = {2},
+  pages = {243--268},
+  date = {2007},
+  issn = {1369-7412,1467-9868},
+  abstract = {Probabilistic forecasts of continuous variables take the form of
+  predictive densities or predictive cumulative distribution functions. We
+  propose a diagnostic approach to the evaluation of predictive performance that
+  is based on the paradigm of maximizing the sharpness of the predictive
+  distributions subject to calibration. Calibration refers to the statistical
+  consistency between the distributional forecasts and the observations and is a
+  joint property of the predictions and the events that materialize. Sharpness
+  refers to the concentration of the predictive distributions and is a property
+  of the forecasts only. A simple theoretical framework allows us to distinguish
+  between probabilistic calibration, exceedance calibration and marginal
+  calibration. We propose and study tools for checking calibration and
+  sharpness, among them the probability integral transform histogram, marginal
+  calibration plots, the sharpness diagram and proper scoring rules. The
+  diagnostic approach is illustrated by an assessment and ranking of
+  probabilistic forecasts of wind speed at the Stateline wind energy centre in
+  the US Pacific Northwest. In combination with cross-validation or in the time
+  series context, our proposal provides very general, nonparametric alternatives
+  to the use of information criteria for model diagnostics and model selection.},
+  url = {http://www.jstor.org/stable/4623266},
+  file = {All_Papers/G/Gneiting_et_al._2007_-_Probabilistic_Forecasts,_Calibration_and_Sharpness.pdf}
+}
+
+
+@ARTICLE{Gneiting2014-wh,
+  title = {{Probabilistic Forecasting}},
+  author = {Gneiting, Tilmann and Katzfuss, Matthias},
+  journaltitle = {Annual Review of Statistics and Its Application},
+  volume = {1},
+  pages = {125--151},
+  date = {2014},
+  doi = {10.1146/annurev-statistics-062713-085831},
+  issn = {2326-8298},
+  abstract = {Aprobabilistic forecast takes the form of a predictive probability
+  distribution over future quantities or events of interest. Probabilistic
+  forecasting aims to maximize the sharpness of the predictive distributions,
+  subject to calibra- tion, on the basis of the available information set. We
+  formalize and study notions of calibration in a prediction space setting. In
+  practice, probabilis- tic calibration can be checked by examining probability
+  integral transform (PIT) histograms. Proper scoring rules such as the
+  logarithmic score and the continuous ranked probability score serve to assess
+  calibration and sharp- ness simultaneously. As a special case, consistent
+  scoring functions provide decision-theoretically coherent tools for evaluating
+  point forecasts.We em- phasizemethodological links to parametric and
+  nonparametric distributional regression techniques, which attempt to model and
+  to estimate conditional distribution functions; we use the context of
+  statistically postprocessed en- semble forecasts in numerical weather
+  prediction as an example. Through- out, we illustrate concepts and
+  methodologies in data examples. 125},
+  url = {http://www.annualreviews.org/doi/abs/10.1146/annurev-statistics-062713-085831},
+  keywords = {calibration; consistent scoring function; distributional
+  regression; ensemble forecast; proper scoring; rule}
+}
+
+
+@ARTICLE{Mei2019-hb,
+  title = {{The generalization error of random features regression: Precise
+  asymptotics and double descent curve}},
+  author = {Mei, Song and Montanari, Andrea},
+  journaltitle = {arXiv [math.ST]},
+  date = {2019-08-14},
+  eprint = {1908.05355},
+  eprinttype = {arXiv},
+  eprintclass = {math.ST},
+  abstract = {Deep learning methods operate in regimes that defy the traditional
+  statistical mindset. Neural network architectures often contain more
+  parameters than training samples, and are so rich that they can interpolate
+  the observed labels, even if the latter are replaced by pure noise. Despite
+  their huge complexity, the same architectures achieve small generalization
+  error on real data. This phenomenon has been rationalized in terms of a
+  so-called `double descent' curve. As the model complexity increases, the test
+  error follows the usual U-shaped curve at the beginning, first decreasing and
+  then peaking around the interpolation threshold (when the model achieves
+  vanishing training error). However, it descends again as model complexity
+  exceeds this threshold. The global minimum of the test error is found above
+  the interpolation threshold, often in the extreme overparametrization regime
+  in which the number of parameters is much larger than the number of samples.
+  Far from being a peculiar property of deep neural networks, elements of this
+  behavior have been demonstrated in much simpler settings, including linear
+  regression with random covariates. In this paper we consider the problem of
+  learning an unknown function over the $d$-dimensional sphere $\mathbb
+  S^{d-1}$, from $n$ i.i.d. samples $(\boldsymbol x_i, y_i)\in \mathbb S^{d-1}
+  \times \mathbb R$, $i\le n$. We perform ridge regression on $N$ random
+  features of the form $\sigma(\boldsymbol w_a^{\mathsf T} \boldsymbol x)$,
+  $a\le N$. This can be equivalently described as a two-layers neural network
+  with random first-layer weights. We compute the precise asymptotics of the
+  test error, in the limit $N,n,d\to \infty$ with $N/d$ and $n/d$ fixed. This
+  provides the first analytically tractable model that captures all the features
+  of the double descent phenomenon without assuming ad hoc misspecification
+  structures.},
+  url = {http://arxiv.org/abs/1908.05355},
+  urldate = {2025-03-15},
+  file = {All_Papers/M/Mei_and_Montanari_2019_-_The_generalization_error_of_random_features_regression_-_Precise_asymptotics_and_double_descent_curve.pdf}
+}
+
+
 @ARTICLE{Kunsch1989-ll,
   title = {{The jackknife and the bootstrap for general stationary observations}},
   author = {Kunsch, Hans R},

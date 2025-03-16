@@ -1,0 +1,516 @@
+---
+title: "Markov Chain Monte Carlo"
+subtitle: "Lecture 16"
+author: "Vivek Srikrishnan"
+course: "BEE 4850"
+institution: "Cornell University"
+date: "March 19, 2024"
+format:
+    revealjs:
+        slide-number: c/t
+        show-slide-number: all
+        center-title-slide: true
+        width: 1280
+        height: 720
+        transition: none
+        toc: true
+        toc-depth: 1
+        toc-title: "Overview"
+        history: false
+        link-external-newwindow: true
+        theme: ../sass/slides.scss
+        template-partials:
+            - title-slide.html
+        menu:
+            numbers: true
+        html-math-method: mathjax
+        include-in-header: mathjax-config.html
+        date-format: long
+        email-obfuscation: javascript
+        chalkboard:
+            theme: whiteboard
+            buttons: true
+        mermaid: 
+            theme: dark
+engine: julia
+filters:
+  - code-fullscreen
+---
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+#| output: false
+
+using Random
+using DataFrames
+using DataFramesMeta
+using CSV
+using Dates
+using Distributions
+using ColorSchemes
+using Plots
+using StatsPlots
+using StatsBase
+using Optim
+using LaTeXStrings
+using Measures
+
+Random.seed!(1)
+
+plot_font = "Computer Modern"
+default(
+    fontfamily=plot_font,
+    linewidth=3, 
+    framestyle=:box, 
+    label=nothing, 
+    grid=false,
+    guidefontsize=18,
+    legendfontsize=16,
+    tickfontsize=16,
+    titlefontsize=20,
+    bottom_margin=10mm,
+    left_margin=5mm
+)
+```
+
+# Last Class
+
+## Markov Chains
+
+- Stochastic process with transition matrix $P$: $\lambda_t = \lambda_{t-1}P$.
+- **Markovian (memoryless) property**: $$\mathbb{P}(X_t = x_i | X_{t-1} = x_{t-1}) = \mathbb{P}(X_t = s_i | X_{t-1} = x_{t-1}, \ldots, X_0 = x_0)$$
+- **Ergodic chains**: dynamics converge to limiting distribution $$\pi_j = \lim_{n \to \infty} \mathbb{P}(X_n = s_j)$$ which is stationary, $\pi = \pi P$.
+
+## Markov Chain Monte Carlo
+
+- Family of methods for simulating from hard-to-sample from distributions $\pi$;
+- Rely on ergodic Markov chains for simulation;
+- By construction, chains converge to limiting distribution which is the target distribution $\pi$.
+
+# MCMC Overview
+
+## Detailed Balance
+
+Let $\{X_t\}$ be a Markov chain and let $\pi$ be a probability distribution over the states. Then the chain is in **detailed balance with respect to $\pi$** if
+$$\pi_i P_{ij} = \pi_j P_{ji}.$$
+
+Detailed balance implies **reversibility**: the chain's dynamics are the same when viewed forwards or backwards in time.
+
+## Detailed Balance Intuition
+
+A nice analogy (from [Miranda Holmes-Cerfon](https://personal.math.ubc.ca/~holmescerfon/)) is traffic flow.
+
+:::: {.columns}
+::: {.column width=50%}
+Consider NYC and its surroundings: each borough/region can be thought of as a node, and population transitions occur across bridges/tunnels.
+:::
+::: {.column width=50%}
+![New York City Graph](figures/detailed-balance-nyc.png)
+:::
+::::
+
+## Detailed Balance: Stationary Distributions
+
+Detailed balance is a sufficient but not necessary condition for the existence of a stationary distribution (namely $\pi$):
+
+$$\begin{align*}
+(\pi P)_i &= \sum_j \pi_j P_{ji} \\
+&= \sum_j \pi_i P_{ij} \\
+&= \pi_i \sum_j P_{ij} = \pi_i
+\end{align*}$$
+
+
+## Idea of Sampling Algorithm
+
+The idea of our sampling algorithm is to construct an ergodic Markov chain from the detailed balance equation for the target distribution. 
+
+- Detailed balance implies that the target distribution is the stationary distribution.
+- Ergodicity implies that this distribution is unique and can be obtained as the limiting distribution of the chain's dynamics.
+
+## Idea of Sampling Algorithm
+
+In other words: 
+
+- Generate an appropriate Markov chain so that its stationary distribution of the target distribution $\pi$;
+- Run its dynamics long enough to converge to the stationary distribution;
+- Use the resulting ensemble of states as Monte Carlo samples from $\pi$ .
+
+## Sampling Algorithm
+
+Any algorithm which follows this procedure is a Markov chain Monte Carlo algorithm.
+
+**Good news**: These algorithms are designed to work quite generally, without (*usually*) having to worry about technical details like detailed balance and ergodicity.
+
+**Bad news**: They *can* involve quite a bit of tuning for computational efficiency. Some algorithms or implementations are faster/adaptive to reduce this need.
+
+## Sampling Algorithm
+
+**Annoying news**: 
+
+- Convergence to the stationary distribution is only guaranteed asymptotically; evaluating if the chain has been run long enough requires lots of heuristics.
+- Due to Markovian property, samples are autocorrelated, so smaller "effective sample size" than the raw number of samples.
+
+
+## What Is The Upshot?
+
+Given a Markov chain $\{X_t\}_{t=1, \ldots, T}$ returned from MCMC, sampling from distribution $\pi$:
+
+- $\mathbb{P}(X_t = y) \to \pi(y)$ as $t \to \infty$
+- This means the chain can be considered a *dependent* sample approximately distributed from $\pi$.
+- The first values (the *transient portion*) of the chain are highly dependent on the initial value but do not affect asymptotic convergence.
+
+## History of MCMC
+
+![Metropolis et al](figures/metropolis_etal_title.png)
+
+::: {.quote}
+> "...instead of choosing configurations randomly, then weighting them with $\exp(- E/ kT)$, we choose configurations with a probability $\exp (- E/ kT)$ and weight them evenly."
+:::
+
+## Example: Metropolis-Hastings
+
+Given $X_t = x_t$:
+
+1. Generate $Y_t \sim q(y | x_t)$;
+2. Set $X_{t+1} = Y_t$ with probability $\rho(x_t, Y_t)$, where
+    $$\rho(x, y) = \min \left\{\frac{\pi(y)}{\pi(x)}\frac{q(x | y)}{q(y | x)}, 1\right\},$$
+    else set $X_{t+1} = x_t$.
+
+## M-H Algorithm Illustration
+
+:::: {.columns}
+::: {.column width=50%}
+
+![First Example of M-H Algorithm](figures/mh-1.png)
+:::
+::: {.column width=50%}
+
+![Second Example of M-H Algorithm](figures/mh-2.png)
+:::
+::::
+
+## How Simple Is That?
+
+The devil is in the details: performance and efficiency are highly dependent on the choice of $q$.
+
+::: {.fragment .fade-in}
+**Key**: There is a tradeoff between exploration and acceptance.
+
+- Wide proposal: Can make bigger jumps, may be more likely to reject proposals.
+- Narrow proposal: More likely to accept proposals, may not "mix" efficiently.
+:::
+
+## More Modern MCMC Algorithms
+
+Many innovations in the last decade: best methods use gradients and don't require much tuning.
+
+These days, no real reason to not use **Hamiltonian Monte Carlo** (default in `pyMC3`, `Turing`, `Stan`, other probabilistic programming languages) unless you can't write your code in a PPL.
+
+# Sampling With MCMC Using A PPL
+
+## San Francisco Tide Gauge Data
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-fold: true
+#| code-overflow: wrap
+#| fig-align: center
+#| label: fig-surge-data
+#| fig-cap: Annual maxima surge data from the San Francisco, CA tide gauge.
+
+# read in data and get annual maxima
+function load_data(fname)
+    date_format = DateFormat("yyyy-mm-dd HH:MM:SS")
+    # This uses the DataFramesMeta.jl package, which makes it easy to string together commands to load and process data
+    df = @chain fname begin
+        CSV.read(DataFrame; header=false)
+        rename("Column1" => "year", "Column2" => "month", "Column3" => "day", "Column4" => "hour", "Column5" => "gauge")
+        # need to reformat the decimal date in the data file
+        @transform :datetime = DateTime.(:year, :month, :day, :hour)
+        # replace -99999 with missing
+        @transform :gauge = ifelse.(abs.(:gauge) .>= 9999, missing, :gauge)
+        select(:datetime, :gauge)
+    end
+    return df
+end
+
+dat = load_data("data/surge/h551.csv")
+
+# detrend the data to remove the effects of sea-level rise and seasonal dynamics
+ma_length = 366
+ma_offset = Int(floor(ma_length/2))
+moving_average(series,n) = [mean(@view series[i-n:i+n]) for i in n+1:length(series)-n]
+dat_ma = DataFrame(datetime=dat.datetime[ma_offset+1:end-ma_offset], residual=dat.gauge[ma_offset+1:end-ma_offset] .- moving_average(dat.gauge, ma_offset))
+
+# group data by year and compute the annual maxima
+dat_ma = dropmissing(dat_ma) # drop missing data
+dat_annmax = combine(dat_ma -> dat_ma[argmax(dat_ma.residual), :], groupby(DataFrames.transform(dat_ma, :datetime => x->year.(x)), :datetime_function))
+delete!(dat_annmax, nrow(dat_annmax)) # delete 2023; haven't seen much of that year yet
+rename!(dat_annmax, :datetime_function => :Year)
+select!(dat_annmax, [:Year, :residual])
+dat_annmax.residual = dat_annmax.residual / 1000 # convert to m
+
+# make plots
+p1 = plot(
+    dat_annmax.Year,
+    dat_annmax.residual;
+    xlabel="Year",
+    ylabel="Annual Max Tide Level (m)",
+    label=false,
+    marker=:circle,
+    markersize=5,
+    tickfontsize=16,
+    guidefontsize=18
+)
+p2 = histogram(
+    dat_annmax.residual,
+    normalize=:pdf,
+    orientation=:horizontal,
+    label=:false,
+    xlabel="PDF",
+    ylabel="",
+    yticks=[],
+    tickfontsize=16,
+    guidefontsize=18
+)
+
+l = @layout [a{0.7w} b{0.3w}]
+plot(p1, p2; layout=l, link=:y, ylims=(1, 1.7), bottom_margin=5mm, left_margin=5mm)
+plot!(size=(1000, 450))
+```
+
+## Probability Model
+
+$$
+\begin{align*}
+& y \sim LogNormal(\mu, \sigma) \tag{likelihood}\\
+& \left. \begin{aligned} 
+& \mu \sim Normal(0, 0.5) \\
+& \sigma \sim HalfNormal(0, 0.1)
+\end{aligned} \right\} \tag{priors}
+\end{align*}
+$$
+
+## Specifying Extreme Example with `Turing.jl`
+
+```{julia}
+#| echo: true
+#| output: false
+#| code-line-numbers: "|4|5-7|8-9|10-11|"
+
+using Turing
+## y: observed data
+## can also specify covariates or auxiliary data in the function if used
+@model function tide_model(y)
+    # specify priors
+    μ ~ Normal(0, 0.5)
+    σ ~ truncated(Normal(0, 0.1), 0, Inf)
+    # specify likelihood
+    y ~ LogNormal(μ, σ)
+    # returning y allows us (later) to generate predictive simulations
+    return y 
+end
+```
+
+## Sampling from Posterior
+
+```{julia}
+#| echo: true
+#| code-fold: true
+
+m = tide_model(dat_annmax.residual)
+# draw 10_000 samples using NUTS() sampler, with 4 chains (using MCMCThreads() for serial sampling)
+surge_chain = sample(m, NUTS(), MCMCThreads(), 10_000, 4, progress=false)
+```
+
+## What Does This Output Mean?
+
+- **MCSE**: Monte Carlo Standard Error for mean.
+- **ESS (Effective Sample Size)**: Accounts for autocorrelation $\rho_t$ across samples
+  $$N_\text{eff} = \frac{N}{1+2\sum_{t=1}^\infty \rho_t}$$
+- **Rhat**: Convergence metric (@Gelman1992-da) based on multiple chains. 
+
+## Visualizing the Sampler
+
+```{julia}
+#| label: fig-posterior-visual
+#| fig-cap: Posterior samples from Turing.jl
+#| echo: true
+#| code-fold: true
+
+
+plot(surge_chain, size=(1200, 500))
+```
+
+# Assessing Convergence
+
+## What Can Go Wrong?
+
+::: {.center}
+![MCMC Sampling for Various Proposals](figures/mcmc-trace.svg)
+:::
+
+## Autocorrelation of Chains
+
+::: {.center}
+![MCMC Sampling for Various Proposals](figures/mh-acplot.svg){width=80%}
+:::
+
+
+## How To Identify Convergence?
+
+**Short answer**: There is no guarantee! Judgement based on an accumulation of evidence from various heuristics.
+
+- The good news &mdash; getting the precise "right" end of the transient chain doesn't matter. 
+- If a few transient iterations remain, the effect will be washed out with a large enough post-convergence chain.
+
+## Heuristics for Convergence
+
+Compare distribution (histogram/kernel density plot) after half of the chain to full chain.
+
+::: {#fig-convergence layout-ncol=2}
+![2000 Iterations](figures/mh-densitycheck-2000.svg){width=100%}
+
+![10000 Iterations](figures/mh-densitycheck-10000.svg){width=100%}
+
+:::
+
+## Gelman-Rubin Diagnostic
+
+@Gelman1992-da
+
+- Run multiple chains from "overdispersed" starting points
+- Compare intra-chain and inter-chain variances
+- Summarized as $\hat{R}$ statistic: closer to 1 implies better convergence.
+
+## On Multiple Chains
+
+Unless a specific parallelized scheme (called **sequential Monte Carlo**) is used, cannot run multiple shorter chains in lieu of one longer chain since each chain needs to individually converge.
+
+This means multiple chains are more useful for diagnostics. But you can sample from each once they've converged.
+
+
+## Heuristics for Convergence
+
+- If you're more interested in the mean estimate, can also look at the its stability by iteration or the *Monte Carlo standard error*.
+- Look at traceplots; do you see sudden "jumps"?
+- **When in doubt, run the chain longer.**
+
+## Transient Chain Portion
+
+What do we do with the transient portion of the chain?
+
+::: {.fragment .fade-in}
+- Discard as *burn-in* (might be done automatically by a PPL);
+- Just run the chain longer.
+:::
+
+## What To Do After?
+
+- Can compute expectations using the full chain; MCSE is more complicated but is reported from most PPL outputs (otherwise platform specific implementations).
+- Can subsample from or thin chain if computationally convenient (but pay attention to $ESS$).
+  
+# Posterior Predictive Checks
+
+## Posterior Visualization
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-overflow: wrap
+#| code-fold: true
+#| label: fig-surge-posterior
+#| fig-cap: Posterior visualization for surge chain
+
+chn_1 = surge_chain[:, :, 1]
+p1 = histogram(chn_1[:μ], label="Samples", normalize=:pdf, legend=:topleft, xlabel=L"μ", ylabel=L"p(μ|y)",)
+p2 = histogram(chn_1[:σ], label="Samples", normalize=:pdf, legend=:topleft, xlabel=L"σ", ylabel=L"p(σ|y)")
+p = plot(p1, p2, layout = @layout [a b])
+vline!(p, mean(chn_1)[:, 2]', color=:purple, linewidth=3, label="Posterior Mean")
+plot!(p, size=(1200, 450))
+```
+
+## Correlations
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-overflow: wrap
+#| code-fold: true
+#| label: fig-surge-correlations
+#| fig-cap: Posterior correlations
+
+p1 = histogram2d(chn_1[:μ], chn_1[:σ], normalize=:pdf, legend=false, xlabel=L"$\mu$", ylabel=L"\sigma")
+plot!(p1, size=(1200, 450))
+```
+
+## Monte Carlo: Posterior Predictive Checks
+
+$$p(\hat{y} | y) = \int p(\hat{y} | \theta) p(\theta | y) d\theta$$
+
+1. Simulate $\theta_i$ from posterior (from chain);
+2. Simulate statistic or predicted values $\hat{y} | \theta_i$.
+3. Compute expectations/credible intervals from ensemble.
+
+## Posterior Predictive Check Example
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-overflow: wrap
+#| code-fold: true
+#| label: fig-surge-posterior-predictive
+#| fig-cap: Posterior predictive checks
+
+return_periods = 2:100
+return_levels = zeros(10_000, length(return_periods))
+plt_rt = plot(; ylabel="Return Level (m)", xlabel="Return Period (yrs)", legend=:bottomright)
+for idx in 1:10_000
+    μ = chn_1[:μ][idx]
+    σ = chn_1[:σ][idx]
+    return_levels[idx, :] = quantile.(LogNormal(μ, σ), 1 .- (1 ./ return_periods))
+    label = idx == 1 ? "Posterior" : false
+    plot!(plt_rt, return_periods, return_levels[idx, :]; color=:black, alpha=0.05, label=label, linewidth=0.5)
+end
+# plot return level quantiles
+rl_q = mapslices(col -> quantile(col, [0.025, 0.5, 0.975]), return_levels, dims=1)
+plot!(plt_rt, return_periods, rl_q[[1,3], :]', color=:green, linewidth=3, label="95% CI")
+plot!(plt_rt, return_periods, rl_q[2, :], color=:red, linewidth=3, label="Posterior Median")
+# plot data
+scatter!(plt_rt, return_periods, quantile(dat_annmax.residual, 1 .- (1 ./ return_periods)), label="Data", color=:blue)
+plot!(plt_rt, size=(1200, 500))
+plt_rt
+```
+
+
+# Key Points and Upcoming Schedule
+
+
+## Key Points (MCMC Convergence)
+
+- Must rely on "accumulation of evidence" from heuristics for determination about convergence to stationary distribution.
+- Transient portion of chain: Meh. Some people worry about this too much. Discard or run the chain longer.
+- Parallelizing solves few problems, but running multiple chains can be useful for diagnostics.
+
+## Next Classes
+
+**Wednesday**: Cross-Validation and Model Skill
+
+**Next Week**: Entropy and Information Criteria
+
+## Assessments
+
+- **Homework 3**: Due Friday (3/14)
+- **Project Proposal**: Due 3/21
+
+# References
+
+## References (Scroll for Full List)

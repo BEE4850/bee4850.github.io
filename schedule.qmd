@@ -27,9 +27,9 @@ Readings can be accessed using the link (when needed, through the Cornell librar
 | [7](weeks/week07.qmd) | 3/3  | Monte Carlo Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture07-1-monte-carlo.qmd) | Bankes ([1993](https://pubsonline-informs-org.proxy.library.cornell.edu/doi/10.1287/opre.41.3.435)) | [{{< fa sharp pen-field >}}](hw/hw02/hw02.qmd) |
 |   | 3/5  | The Bootstrap  | [{{< fa sharp presentation-screen >}}](slides/lecture07-2-bootstrap.qmd) | | |
 | [8](weeks/week08.qmd) | 3/10 | The Parametric Bootstrap | [{{< fa sharp presentation-screen >}}](slides/lecture08-1-parametric-bootstrap.qmd) | Ruckert et al ([2017](https://link.springer.com/article/10.1007/s10584-016-1858-z)) | |
-|   | 3/12 | Bayesian Computing | [{{< fa sharp presentation-screen >}}](slides/lecture08-2-bayesian-computation.qmd) | | |
-| 9 | 3/17 | | | | |
-|   | 3/19 |  | | | |
+|   | 3/12 | Bayesian Computing and Markov Chains | [{{< fa sharp presentation-screen >}}](slides/lecture08-2-bayesian-computation.qmd) | | |
+| [8](weeks/week09.qmd) | 3/17 | Markov Chain Monte Carlo | [{{< fa sharp presentation-screen >}}](slides/lecture09-1-mcmc.qmd) | | |
+|   | 3/19 | Predictive Model Assessments | [{{< fa sharp presentation-screen >}}](slides/lecture09-2-model-skill.qmd)  | | |
 | 10 | 3/24 |  | | | |
 |    | 3/26 |  | | | | 
 |    | 3/31 | ***Spring Break*** | 

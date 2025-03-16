@@ -1,0 +1,20 @@
+---
+title: "Week 9 Information"
+---
+
+## Lectures
+
+- [Markov Chain Monte Carlo](../slides/lecture09-1-mcmc.qmd)
+- [Predictive Model Assessments](../slides/lecture09-2-model-skill.qmd)
+
+## Homework
+
+- Homework 4 will be assigned this week, due 4/11 at 9pm.
+
+## Readings
+
+- No reading this week.
+
+## Quiz
+
+- No quiz this week.
