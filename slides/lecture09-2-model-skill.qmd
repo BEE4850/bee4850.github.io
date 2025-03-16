@@ -343,18 +343,35 @@ $$R^2 = 1 - (\sigma^2_\text{residuals}/\sigma^2_\text{data})$$
 
 - Probably most common, also only meaningful for linear Gaussian models $y \sim N(\beta_0 + \beta_1 x, \sigma^2)$.
 - Increasing predictors **always** increases $R^2$, making it useless for model selection. 
-- Can adjust for , substitute $$R^2_\text{adj} = 1 - ((n / (n-2)) \sigma^2_\text{residuals} / \sigma^2_\text{data})$$
+- Can adjust for increasing complexity, substitute $$R^2_\text{adj} = 1 - ((n / (n-2)) \sigma^2_\text{residuals} / \sigma^2_\text{data})$$
 
 ## Myths and Problems With $R^2$
 
-1. It doesn't measure goodness of fit! If we knew the "true" regression slope $\beta_1$, not hard to derive $$R^2 = \frac{\beta_1^2 \text{Var}(x)}{\beta_1^2 \text{Var}(x) + \sigma^2}.$$ This can be made arbitrarily small if $\text{Var}(x)$ is small or $\sigma^2$ is large **even if the model is true**. And when the model is wrong, $R^2$ can be made arbitrarily large.
+1. It (and its adjusted value) doesn't measure goodness of fit! If we knew the "true" regression slope $\beta_1$, not hard to derive $$R^2 = \frac{\beta_1^2 \text{Var}(x)}{\beta_1^2 \text{Var}(x) + \sigma^2}.$$ This can be made arbitrarily small if $\text{Var}(x)$ is small or $\sigma^2$ is large **even if the model is true**. And when the model is wrong, $R^2$ can be made arbitrarily large.
 
 ## Myths and Problems With $R^2$
 
 2.  It says nothing about prediction error.
-3.  Cannot be compared across different datasets (since it's impacted by $\text{Var}{x}$).
+3.  Cannot be compared across different datasets (since it's impacted by $\text{Var}(x)$).
 4.  Is not preserved under transformations.
 5.  It doesn't **explain** anything about variance: $x$ regressed on $y$ gives the same $R^2$ as $y$ regressed on $x$ (measure of correlation).
+
+
+## Anscombe's Quartet Illustrates Problems With $R^2$
+
+:::: {.columns}
+::: {.column width=40%}
+Anscombe's Quartet [@Anscombe1973-pp] consists of datasets which have the same summary statistics (including $R^2$) but very different graphs.
+:::
+::: {.column width=60%}
+
+![Anscombe's Quartet](https://upload.wikimedia.org/wikipedia/commons/thumb/e/ec/Anscombe%27s_quartet_3.svg/1920px-Anscombe%27s_quartet_3.svg.png){width=80%}
+
+::: {.caption}
+Source: [Wikipedia](https://en.wikipedia.org/wiki/Anscombe%27s_quartet)
+:::
+:::
+::::
 
 ## Alternatives to $R^2$
 
