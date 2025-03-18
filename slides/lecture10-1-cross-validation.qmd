@@ -1,0 +1,151 @@
+---
+title: "Cross Validation"
+subtitle: "Lecture 17"
+author: "Vivek Srikrishnan"
+course: "BEE 4850"
+institution: "Cornell University"
+date: "March 24, 2024"
+format:
+    revealjs:
+        slide-number: c/t
+        show-slide-number: all
+        center-title-slide: true
+        width: 1280
+        height: 720
+        transition: none
+        toc: true
+        toc-depth: 1
+        toc-title: "Overview"
+        history: false
+        link-external-newwindow: true
+        theme: ../sass/slides.scss
+        template-partials:
+            - title-slide.html
+        menu:
+            numbers: true
+        html-math-method: mathjax
+        include-in-header: mathjax-config.html
+        date-format: long
+        email-obfuscation: javascript
+        chalkboard:
+            theme: whiteboard
+            buttons: true
+        mermaid: 
+            theme: dark
+engine: julia
+filters:
+  - code-fullscreen
+---
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+#| output: false
+
+using Random
+using DataFrames
+using DataFramesMeta
+using CSV
+using Dates
+using Distributions
+using ColorSchemes
+using Plots
+using StatsPlots
+using StatsBase
+using Optim
+using LaTeXStrings
+using Measures
+
+Random.seed!(1)
+ENV["GKSwstype"] = "nul"
+
+plot_font = "Computer Modern"
+default(
+    fontfamily=plot_font,
+    linewidth=3, 
+    framestyle=:box, 
+    label=nothing, 
+    grid=false,
+    guidefontsize=18,
+    legendfontsize=16,
+    tickfontsize=16,
+    titlefontsize=20,
+    bottom_margin=10mm,
+    left_margin=5mm
+)
+```
+
+# Cross-Validation
+
+## Can We Drive Model Error to Zero?
+
+Effectively, no. **Why**?
+
+::: {.fragment .fade-in}
+
+- Inherent noise: even a perfect model wouldn't perfectly predict observations.
+- Model mis-specification (the cause of bias)
+- Model estimation is never "right" (the cause of variance) 
+
+:::
+
+## Quantifying Generalization Error
+
+The goal is then to minimize the generalized (expected) error:
+
+$$\mathbb{E}\left[L(X, \theta)\right] = \int_X L(x, \theta) \pi(x)dx$$
+
+where $L(x, \theta)$ is an error function capturing the discrepancy between $\hat{f}(x, \theta)$ and $y$.
+
+## In-Sample Error
+
+Since we don't know the "true" distribution of $y$, we could try to approximate it using the training data:
+
+$$\hat{L} = \min_{\theta \in \Theta} L(x_n, \theta)$$
+
+But: **This is minimizing in-sample error and is likely to result an optimistic score.**
+
+## Held Out Data
+
+Instead, let's divide our data into a training dataset $y_k$ and testing dataset $\tilde{y}_l$.
+
+1. Fit the model to $y_k$;
+2. Evaluate error on $\tilde{y}_l$.
+
+This results in an unbiased estimate of $\hat{L}$ but is noisy.
+
+## $k$-Fold Cross-Validation
+
+What if we repeated this procedure for multiple held-out sets?
+
+1. Randomly split data into $k = n / m$ equally-sized subsets.
+2. For each $i = 1, \ldots, k$, fit model to $y_{-i}$ and test on $y_i$.
+
+If data are large, this is a good approximation.
+
+## Leave-One-Out Cross-Validation (LOOCV)
+
+The problem with $k$-fold CV, when data is scarce, is withholding $n/k$ points.
+
+**LOO-CV**: Set $k=n$
+
+**The trouble**: estimates of $L$ are highly correlated since every two datasets share $n-2$ points.
+
+**The benefit**: LOO-CV approximates seeing "the next datum".
+
+## LOO-CV Algorithm
+
+1. Drop one value $y_i$.
+2. Refit model on rest of data $y_{-i}$.
+3. Evaluate $L(y_i | y_{-i})$.
+4. Repeat on rest of data set.
+
+# References
+
+## Refernences (Scroll for Full List)
