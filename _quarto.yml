@@ -75,6 +75,8 @@ website:
             text: "Week 8"
           - href: weeks/week09.qmd
             text: "Week 9"
+          - href: weeks/week10.qmd
+            text: "Week 10"
       - section: homework.qmd
         text: "Homework"
         contents:
@@ -86,6 +88,7 @@ website:
             text: "Homework 02"
           - href: hw/hw03/hw03.qmd
             text: "Homework 03"
+          - href: hw/hw04/hw04.qmd
       - project.qmd
       - lit_critique.qmd
       - section: "Julia Tutorials"

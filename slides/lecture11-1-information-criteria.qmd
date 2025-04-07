@@ -1,0 +1,613 @@
+---
+title: "Information Criteria"
+subtitle: "Lecture 18"
+author: "Vivek Srikrishnan"
+course: "BEE 4850"
+institution: "Cornell University"
+date: "March 31, 2025"
+format:
+    revealjs:
+        slide-number: c/t
+        show-slide-number: all
+        center-title-slide: true
+        width: 1280
+        height: 720
+        transition: none
+        toc: true
+        toc-depth: 1
+        toc-title: "Overview"
+        history: false
+        link-external-newwindow: true
+        theme: ../sass/slides.scss
+        template-partials:
+            - title-slide.html
+        menu:
+            numbers: true
+        html-math-method: mathjax
+        include-in-header: mathjax-config.html
+        date-format: long
+        email-obfuscation: javascript
+        chalkboard:
+            theme: whiteboard
+            buttons: true
+        mermaid: 
+            theme: dark
+engine: julia
+filters:
+  - code-fullscreen
+---
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+#| output: false
+
+using Random
+using DataFrames
+using DataFramesMeta
+using CSV
+using Dates
+using Distributions
+using Turing
+using ColorSchemes
+using Plots
+using StatsPlots
+using StatsBase
+using LaTeXStrings
+using Measures
+using Optim
+
+Random.seed!(1)
+
+ENV["GKSwstype"] = "nul"
+
+plot_font = "Computer Modern"
+default(
+    fontfamily=plot_font,
+    linewidth=3, 
+    framestyle=:box, 
+    label=nothing, 
+    grid=false,
+    guidefontsize=18,
+    legendfontsize=16,
+    tickfontsize=16,
+    titlefontsize=20,
+    bottom_margin=10mm,
+    left_margin=5mm
+)
+
+```
+
+# Review of Last Class
+
+## Information and Uncertainty
+
+**Key Idea**: "Information" as reduction in uncertainty from projection.
+
+**Entropy**: $H(p) = \mathbb{E}[\log(p)] = -\sum_{i=1}^n p_i \log p_i$
+
+## Kullback-Leibler Divergence
+
+Measure of "distance" between "true" distribution $p$ and surrogate/projection distribution $q$:
+
+$$D_{KL}(p, q) = \sum_i p_i (\log(p_i) - \log(q_i))$$
+
+**Intuitively**: What is the surprise from using $q$ to predict $p$?
+
+## Entropy and Log-Score
+
+Suppose we have two projections $q$ and $r$ for a "true" data-generating process $p$:
+
+$$
+D_{KL}(p, q) - D_{KL}(p, r) = \sum_i p_i (\log(r_i) - \log(q_i))
+$$
+
+
+## Deviance Scale
+
+This **log-predictive-density** score is better when larger.
+
+Common to see this converted to **deviance**, which is $-2\text{lppd}$:
+
+- $-1$ reorients so smaller is better;
+- Multiplied by $2$ for historical reasons (cancels out the -1/2 in the Gaussian likelihood).
+
+
+## Deviance and Degrees of Freedom
+
+```{julia}
+#| label: fig-deviance-sim
+#| fig-cap: Simulation of in vs. out of sample deviance calculations with increasing number of simulations
+#| layout-ncol: 2
+#| echo: true
+#| code-fold: true
+
+function calculate_deviance(y_gen, x_gen, y_oos, x_oos; degree=2, reg=Inf)
+    # fit model
+    lb = [-5 .+ zeros(degree); 0.01]
+    ub = [5 .+ zeros(degree); 10.0]
+    p0 = [zeros(degree); 5.0]
+
+    function model_loglik(p, y, x, reg)
+        if mean(p[1:end-1]) <= reg
+            ll = 0
+            for i = 1:length(y)
+                μ = sum(x[i, 1:degree] .* p[1:end-1])
+                ll += logpdf(Normal(μ, p[end]), y[i])
+            end
+        else
+            ll = -Inf
+        end
+        return ll
+    end
+
+    result = optimize(p -> -model_loglik(p, y_gen, x_gen, reg), lb, ub, p0)
+    θ = result.minimizer
+
+    function deviance(p, y_pred, x_pred)
+        dev = 0
+        for i = 1:length(y_pred)
+            μ = sum(x_pred[i, 1:degree] .* p[1:end-1])
+            dev += -2 * logpdf(Normal(μ, p[end]), y_pred[i])
+        end
+        return dev
+    end
+
+    dev_is = deviance(θ, y_gen, x_gen)
+    dev_oos = deviance(θ, y_oos, x_oos)
+    return (dev_is, dev_oos)
+end
+
+
+N_sim = 10_000
+
+function simulate_deviance(N_sim, N_data; reg=Inf)
+    d_is = zeros(5, 4)
+    for d = 1:5
+        dev_out = zeros(N_sim, 2)
+        for n = 1:N_sim
+            x_gen = rand(Uniform(-2, 2), (N_data, 5))
+            μ_gen = [0.1 * x_gen[i, 1] - 0.3 * x_gen[i, 2] for i in 1:N_data]
+            y_gen = rand.(Normal.(μ_gen, 1))
+
+            x_oos = rand(Uniform(-2, 2), (N_data, 5))
+            μ_oos = [0.1 * x_oos[i, 1] - 0.3 * x_oos[i, 2] for i in 1:N_data]
+            y_oos = rand.(Normal.(μ_oos, 1))
+
+            dev_out[n, :] .= calculate_deviance(y_gen, x_gen, y_oos, x_oos, degree=d, reg=reg)
+        end
+        d_is[d, 1] = mean(dev_out[:, 1])
+        d_is[d, 2] = std(dev_out[:, 1])
+        d_is[d, 3] = mean(dev_out[:, 2])
+        d_is[d, 4] = std(dev_out[:, 2])
+    end
+    return d_is
+end
+
+d_20 = simulate_deviance(N_sim, 20)
+p1 = scatter(collect(1:5) .- 0.1, d_20[:, 1], yerr=d_20[:, 2], color=:blue, linecolor=:blue, lw=2, markersize=5, label="In Sample", xlabel="Number of Predictors", ylabel="Deviance", title=L"$N = 20$", grid=true)
+scatter!(p1, collect(1:5) .+ 0.1, d_20[:, 3], yerr=d_20[:, 4], lw=2, markersize=5, color=:black, linecolor=:black, label="Out of Sample")
+plot!(p1, size=(600, 550))
+
+d_100 = simulate_deviance(N_sim, 100)
+p2 = scatter(collect(1:5) .- 0.1, d_100[:, 1], yerr=d_100[:, 2], color=:blue, linecolor=:blue, lw=2, markersize=5, label="In Sample", xlabel="Number of Predictors", ylabel="Deviance", title=L"$N = 100$", grid=true)
+scatter!(p2, collect(1:5) .+ 0.1, d_100[:, 3], yerr=d_100[:, 4], lw=2, markersize=5, color=:black, linecolor=:black, label="Out of Sample")
+plot!(p2, size=(600, 550))
+
+display(p1)
+display(p2)
+```
+
+## Cross-Validation and Over-/Under-Fitting
+
+**Cross-Validation and related measures cannot detect overfitting when information leaks from the full dataset to the trained model**.
+
+## Cross-Validation and Over-/Under-Fitting
+
+In other words:
+
+- Do not select features based on the entire dataset, then do C-V on that model.
+- Must treat variable/feature selection as part of the C-V process.
+- *A priori* model specification (before looking at the data) avoids this problem.
+
+# Out of Sample Predictive Accuracvy
+
+## Expected Out-Of-Sample Predictive Accuracy
+
+The out-of-sample predictive fit of a new data point $\tilde{y}_i$ is
+
+$$
+\begin{align}
+\log p(\tilde{y}_i) &= \mathbb{E} \log \left[p(\tilde{y}_i | \theta)\right] \\
+&= \log \int p(\tilde{y_i} | \theta) p(\theta)\,d\theta.
+\end{align}
+$$
+
+## Expected Out-Of-Sample Predictive Accuracy
+
+However, the out-of-sample data $\tilde{y}_i$ is itself unknown, so we need to compute the *expected out-of-sample log-predictive density*
+
+$$
+\begin{align}
+\text{elpd} &= \text{expected log-predictive density for } \tilde{y}_i \\
+&= \mathbb{E}_P \left[\log p_\text{post}(\tilde{y}_i)\right] \\
+&= \int \log\left(p_\text{post}(\tilde{y}_i)\right) P(\tilde{y}_i)\,d\tilde{y}.
+\end{align}
+$$
+
+## Expected Out-Of-Sample Predictive Accuracy
+
+What is the challenge?
+
+::: {.fragment .fade-in}
+We don't know $p$ (the distribution of new data)!
+
+We need some measure of the error induced by using an approximating distribution $q$ from some model.
+:::
+
+# Information Criteria
+
+## Information Criteria
+
+"Information criteria" refers to a category of estimators of prediction error.
+
+The idea: estimate predictive error using the fitted model.
+
+## Information Criteria Overview
+
+There is a common framework for all of these:
+
+If we compute the expected log-predictive density for the existing data $p(y | \theta)$, this will be too good of a fit and will overestimate the predictive skill for new data.
+
+## Information Criteria Corrections
+
+We can adjust for that bias by correcting for the *effective number of parameters*, which can be thought of as the expected degrees of freedom in a model contributing to overfitting.
+
+
+## Akaike Information Criterion (AIC)
+
+The "first" information criterion that most people see.
+
+Uses a point estimate (the maximum-likelihood estimate $\hat{\theta}_\text{MLE}$) to compute the log-predictive density for the data, corrected by the number of parameters $k$:
+
+$$\widehat{\text{elpd}}_\text{AIC} = \log p(y | \hat{\theta}_\text{MLE}) - k.$$
+
+## AIC Formula
+
+The AIC is defined as $-2\widehat{\text{elpd}}_\text{AIC}$.
+
+Due to this convention, lower AICs are better (they correspond to a higher predictive skill).
+
+## AIC Correction Term
+
+In the case of a normal model with independent and identically-distributed data and uniform priors, $k$ is the asymptotically "correct" bias term (there are modified corrections for small sample sizes).
+
+However, with more informative priors and/or hierarchical models, the bias correction $k$ is no longer appropriate, as there is less "freedom" associated with each parameter.
+
+## AIC and Deviance Example
+
+```{julia}
+#| label: fig-aic-sim
+#| fig-cap: Simulation of in vs. out of sample AIC calculations with increasing number of simulations
+#| layout-ncol: 2
+#| echo: true
+#| code-fold: true
+
+scatter!(p1, collect(1:5) .+ 0.2, d_20[:, 1] .+ 2 * (1:5), yerr=d_20[:, 2], lw=2, markersize=5, color=:red, linecolor=:black, label="AIC")
+
+scatter!(p2, collect(1:5) .+ 0.2, d_100[:, 1] .+ 2 * (1:5), yerr=d_20[:, 2], lw=2, markersize=5, color=:red, linecolor=:black, label="AIC")
+
+display(p1)
+display(p2)
+```
+
+
+## AIC: Storm Surge Example
+
+:::: {.columns}
+::: {.column width=50%}
+**Question**: Do climate oscillations (*e.g.* the Pacific Decadal Oscillation) result in variations in tidal extremes at the San Francisco tide gauge station?
+
+:::
+::: {.column width=50%}
+```{julia}
+#| output: false
+#| echo: false
+#| label: fig-gev-data
+#| fig-cap: San Francisco tide gauge data
+
+# load SF tide gauge data
+# read in data and get annual maxima
+function load_data(fname)
+    date_format = DateFormat("yyyy-mm-dd HH:MM:SS")
+    # This uses the DataFramesMeta.jl package, which makes it easy to string together commands to load and process data
+    df = @chain fname begin
+        CSV.read(DataFrame; header=false)
+        rename("Column1" => "year", "Column2" => "month", "Column3" => "day", "Column4" => "hour", "Column5" => "gauge")
+        # need to reformat the decimal date in the data file
+        @transform :datetime = DateTime.(:year, :month, :day, :hour)
+        # replace -99999 with missing
+        @transform :gauge = ifelse.(abs.(:gauge) .>= 9999, missing, :gauge)
+        select(:datetime, :gauge)
+    end
+    return df
+end
+
+dat = load_data("data/surge/h551.csv")
+
+# detrend the data to remove the effects of sea-level rise and seasonal dynamics
+ma_length = 366
+ma_offset = Int(floor(ma_length/2))
+moving_average(series,n) = [mean(@view series[i-n:i+n]) for i in n+1:length(series)-n]
+dat_ma = DataFrame(datetime=dat.datetime[ma_offset+1:end-ma_offset], residual=dat.gauge[ma_offset+1:end-ma_offset] .- moving_average(dat.gauge, ma_offset))
+
+# group data by year and compute the annual maxima
+dat_ma = dropmissing(dat_ma) # drop missing data
+dat_annmax = combine(dat_ma -> dat_ma[argmax(dat_ma.residual), :], groupby(DataFrames.transform(dat_ma, :datetime => x->year.(x)), :datetime_function))
+delete!(dat_annmax, nrow(dat_annmax)) # delete 2023; haven't seen much of that year yet
+rename!(dat_annmax, :datetime_function => :Year)
+select!(dat_annmax, [:Year, :residual])
+
+dat_annmax.residual = dat_annmax.residual  # convert to m
+
+# make plots
+psurge = plot(
+    dat_annmax.Year,
+    dat_annmax.residual;
+    xlabel="Year",
+    ylabel="Annual Max Tide (mm)",
+    label=false,
+    marker=:circle,
+    markersize=5
+)
+
+plot!(psurge, size=(600, 400))
+
+```
+:::
+
+## AIC: Storm Surge Example
+
+```{julia}
+#| output: false
+#| echo: false
+
+
+
+function load_pdo(fname)
+    # This uses the DataFramesMeta.jl package, which makes it easy to string together commands to load and process data
+    df = CSV.read(fname, DataFrame, delim=" ", ignorerepeated=true, header=2)
+    # take yearly average
+    @transform!(df, :PDO = mean(AsTable(names(df)[2:13])))
+    @select!(df, $[:Year, :PDO])
+    @rsubset!(df, :Year != 2023)
+    return df
+end
+
+pdo = load_pdo("data/surge/ersst.v5.pdo.dat")
+# subset for years that match the tide gauge data
+years = dat_annmax[!, :Year]
+@rsubset!(pdo, :Year in years)
+
+@model function sf_stat(y)
+    μ ~ truncated(Normal(1500, 200), lower=0)
+    σ ~ truncated(Normal(100, 25), lower=0)
+    ξ ~ Normal(0, 1)
+
+    for i in 1:length(y)
+        y[i] ~ GeneralizedExtremeValue(μ, σ, ξ)
+    end
+end
+
+stat_mod = sf_stat(dat_annmax.residual)
+
+
+@model function sf_nonstat(y)
+    a ~ truncated(Normal(1500, 200), lower=0)
+    b ~ Normal(0, 5)
+    σ ~ truncated(Normal(100, 25), lower=0)
+    ξ ~ Normal(0, 1)
+
+    T = length(y)
+    for i in 1:T
+        y[i] ~ GeneralizedExtremeValue.(a .+ b * i, σ, ξ)
+    end
+end
+
+nonstat_mod = sf_nonstat(dat_annmax.residual)
+
+@model function sf_pdo(y, pdo)
+    a ~ truncated(Normal(1500, 200), lower=0)
+    b ~ Normal(0, 5)
+    σ ~ truncated(Normal(100, 25), lower=0)
+    ξ ~ Normal(0, 1)
+
+    for i in 1:length(y)
+        y[i] ~ GeneralizedExtremeValue.(a + b * pdo[i], σ, ξ)
+    end
+end
+
+pdo_mod = sf_pdo(dat_annmax.residual, pdo.PDO)
+```
+
+Models:
+
+1. Stationary ("null") model, $y_t \sim \text{GEV}(\mu, \sigma, \xi);$
+2. Time nonstationary ("null-ish") model, $y_t \sim \text{GEV}(\mu_0 + \mu_1 t, \sigma, \xi);$
+3. PDO nonstationary model, $y_t \sim \text{GEV}(\mu_0 + \mu_1 \text{PDO}_t, \sigma, \xi)$
+
+## AIC Example
+
+```{julia}
+#| output: true
+#| echo: true
+#| code-fold: true
+
+stat_mle = [1258.71, 56.27, 0.017]
+stat_ll = -707.67
+nonstat_mle = [1231.58, 0.42, 52.07, 0.075]
+nonstat_ll = -702.45
+pdo_mle = [1255.87, -12.39, 54.73, 0.033]
+pdo_ll = -705.24
+
+# compute AIC values
+stat_aic = stat_ll - 3
+nonstat_aic = nonstat_ll - 4
+pdo_aic = pdo_ll - 4
+
+model_aic = DataFrame(Model=["Stationary", "Time", "PDO"], LogLik=trunc.(Int64, round.([stat_ll, nonstat_ll, pdo_ll]; digits=0)), AIC=trunc.(Int64, round.(-2 * [stat_aic, nonstat_aic, pdo_aic]; digits=0)))
+```
+
+## AIC is Efficient, not Consistent
+
+- **Efficiency**: Metric converges to K-L divergence/LOO-CV [@Stone1977-kf]
+- **Consistency**: Metric will tend to choose the "true" model if it is included in the set.
+
+This means **AIC selects for predictive performance, not "truth".**
+
+AIC can tend to overfit due to this prioritization of efficiency.
+
+## AIC for Small Samples
+
+AIC will tend to overfit (more parameters &Rightarrow; more variance), penalty term isn't strong enough to compensate.
+
+$$\text{AIC}_c = \text{AIC} + \frac{2k^2 + 2k}{n - k - 1},$$
+
+where 
+
+- $k = \text{dim}(\mathcal{M})$
+- $n$ is the sample size. 
+
+
+## AIC Interpretation
+
+Absolute AIC values have **no meaning**, only the differences $\Delta_i = \text{AIC}_i - \text{AIC}_\text{min}$.
+
+Some basic rules of thumb (from @Burnham2004-do):
+
+- $\Delta_i < 2$ means the model has "strong" support across $\mathcal{M}$;
+- $4 < \Delta_i < 7$ suggests "less" support;
+- $\Delta_i > 10$ suggests "weak" or "no" support.
+
+## AIC and Model Evidence
+
+$\exp(-\Delta_i/2)$ can be thought of as a measure of the likelihood of the model given the data $y$. 
+
+The ratio $$\exp(-\Delta_i/2) / \exp(-\Delta_j/2)$$ can approximate the relative evidence for  $M_i$ versus $M_j$.
+
+## AIC and Model Averaging
+
+This gives rise to the idea of *Akaike weights*:
+$$w_i = \frac{\exp(-\Delta_i/2)}{\sum_{m=1}^M \exp(-\Delta_m/2)}.$$
+
+Model projections can then be weighted based on $w_i$, which can be interpreted as the probability that $M_i$ is the best (in the sense of approximating the "true" predictive distribution) model in $\mathcal{M}$.
+
+## Model Averaging vs. Selection
+
+Model averaging can sometimes be beneficial vs. model selection.
+
+Model selection can introduce bias from the selection process (this is particularly acute for stepwise selection due to path-dependence).
+
+# Other Information Criteria
+
+## Bayesian Information Criteria (BIC)
+
+$$\text{BIC} = -2 \left(\log p(y | \hat{\theta}_\text{MLE})\right) + k\log n$$
+
+Approximation of **log-marginal likelihood** $$\log p(\mathcal{M}) = \log \int_\theta p(y | \theta, \mathcal{M}) p(\theta | \mathcal{M}) d\theta$$ under a whole host of assumptions related to large-sample approximation (so priors don't matter).
+
+## BIC For Model Comparison
+
+When comparing two models $\mathcal{M}_1$, $\mathcal{M}_2$, get an approximation of the **log-Bayes Factor (BF)**:
+
+$$\Delta \text{BIC} = \text{BIC}_1 - \text{BIC}_2 \approx \log \left(\frac{p(\mathcal{M}_1)}{p(\mathcal{M_2})}\right)$$
+
+This means that $\Delta \text{BIC}$ gives an approximation of the posterior model probabilities across a model set assuming equal prior probabilities.
+
+## BIC vs. AIC
+
+- BIC tends to select more parsimonious models due to stronger penalty;
+- AIC will tend to overfit, BIC to underfit.
+- BIC is **consistent** but **not efficient**.
+
+::: {.fragment .fade-in}
+BIC vs. AIC is the tradeoff between causal vs. predictive analyses. **Generally not coherent to use both for the same problem**.
+:::
+
+## Other Information Criteria
+
+Follow the same pattern: compute $\text{elpd}$ based on some estimate and penalize for model degrees of freedom.
+
+## Deviance Information Criteria (DIC)
+
+The Deviance Information Criterion (DIC) is a more Bayesian generalization of AIC which uses the posterior mean 
+$$\hat{\theta}_\text{Bayes} = \mathbb{E}\left[\theta | y\right]$$
+and a bias correction derived from the data.
+
+## DIC
+
+$$\widehat{\text{elpd}}_\text{DIC} = \log p(y | \hat{\theta}_\text{Bayes}) - p_{\text{DIC}},$$
+where
+$$p_\text{DIC} = 2\left(\log p(y | \hat{\theta}_\text{Bayes}) - \mathbb{E}_\text{post}\left[\log p(y | \theta)\right]\right).$$
+
+Then, as with AIC, $$\text{DIC} = -2\widehat{\text{elpd}}_\text{DIC}.$$
+
+##  DIC: Effective Number of Parameters
+
+**What is the meaning of $p_\text{DIC}$?**
+
+- The difference between the average log-likelihood (across parameters) and the log-likelihood at a parameter average measures "degrees of freedom".
+- The DIC adjustment assumes independence of residuals for fixed $\theta$.
+
+## AIC vs. DIC
+
+AIC and DIC often give similar results, but don't have to. 
+
+The key difference is the impact of priors on parameter estimation and model degrees of freedom.
+
+## Watanabe-Akaike Information Criterion (WAIC)
+
+$$\widehat{\text{elpd}}_\text{WAIC} = \sum_{i=1}^n \log \int p(y_i | \theta) p_\text{post}(\theta)\,d\theta - p_{\text{WAIC}},$$
+
+where
+$$p_\text{WAIC} = \sum_{i=1}^n \text{Var}_\text{post}\left(\log p(y_i | \theta)\right).$$
+
+## WAIC Correction Factor
+
+$p_\text{WAIC}$ is an estimate of the number of "unconstrained" parameters in the model.
+
+- A parameter counts as 1 if its estimate is "independent" of the prior;
+- A parameter counts as 0 if it is fully constrained by the prior.
+- A parameter gives a partial value if both the data and prior are informative.
+
+## WAIC vs. AIC and DIC
+
+- WAIC can be viewed as an approximation to leave-one-out CV, and averages over the entire posterior, vs. AIC and DIC which use point estimates.
+- But it doesn't work well with highly structured data; no real alternative to more clever uses of Bayesian cross-validation.
+
+
+
+
+# Key Takeaways and Upcoming Schedule
+
+## Key Takeaways
+
+- LOO-CV is ideal for navigating bias-variance tradeoff but can be computationally prohibitive.
+- Information Criteria are an approximation to LOO-CV based on "correcting" for model complexity.
+- Approximation to out of sample predictive error as a penalty for *potential to overfit*.
+- Some ICs approximate K-L Divergence/LOO-CV, others approximate marginal likelihood. Different implications for predictive vs. causal modeling.
+
+
+## Next Classes
+
+**Wednesday**: Modeling Extreme Values
+
+# References
+
+## References

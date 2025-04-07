@@ -30,16 +30,16 @@ Readings can be accessed using the link (when needed, through the Cornell librar
 |   | 3/12 | Bayesian Computing and Markov Chains | [{{< fa sharp presentation-screen >}}](slides/lecture08-2-bayesian-computation.qmd) | | |
 | [9](weeks/week09.qmd) | 3/17 | Markov Chain Monte Carlo | [{{< fa sharp presentation-screen >}}](slides/lecture09-1-mcmc.qmd) | Clark et al ([2021](https://agupubs-onlinelibrary-wiley-com.proxy.library.cornell.edu/doi/10.1029/2020WR029001)) | |
 |   | 3/19 | Predictive Model Assessments | [{{< fa sharp presentation-screen >}}](slides/lecture09-2-model-skill.qmd)  |  | |
-| 10 | 3/24 |  | | | |
-|    | 3/26 |  | | | | 
+| 10 | 3/24 | Scoring and Cross-Validation | [{{< fa sharp presentation-screen >}}](slides/lecture10-1-cross-validation.qmd) | | | |
+|    | 3/26 | Information and Entropy |  [{{< fa sharp presentation-screen >}}](slides/lecture10-2-information-models.qmd) | | | 
 |    | 3/31 | ***Spring Break*** | 
 |    | 4/2  | ***Spring Break*** |
-| 11 | 4/7  |  | | | |
-|    | 4/9 | | | | |
-| 12 | 4/14 |  | 
-|    | 4/16 | |
-| 13 | 4/21 | |
-|    | 4/23 | |
+| 11 | 4/7  | Information Criteria  | [{{< fa sharp presentation-screen >}}](slides/lecture11-1-information-criteria.qmd)| | |
+|    | 4/9 | Modeling Extreme Values | | | |
+| 12 | 4/14 |  | | | |
+|    | 4/16 | | | | |
+| 13 | 4/21 | | | | |
+|    | 4/23 | **No Class** | | | |
 | 14 | 4/28 |  | | | |
-|    | 4/30 |  | | | |
-| 15 | 5/5  | | | | |
+|    | 4/30 | **Project Presentations** | | | |
+| 15 | 5/5  | **Project Presentations** | | | |

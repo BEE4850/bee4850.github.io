@@ -410,6 +410,14 @@ $$R^2 = (\sigma^2_\text{model}/\sigma^2_\text{data})$$
 4.  Is not preserved under transformations.
 5.  It doesn't **explain** anything about variance: $x$ regressed on $y$ gives the same $R^2$ as $y$ regressed on $x$ (measure of correlation).
 
+## Gaming Statistics with Outliers
+
+![SMBC: Take It Off](https://www.smbc-comics.com/comics/1679856918-20230326.png)
+
+::: {.caption}
+Source: [Saturday Morning Breakfast Cereal](https://www.smbc-comics.com/comic/take-it-off)
+:::
+
 
 ## Anscombe's Quartet Illustrates Problems With $R^2$
 
@@ -435,147 +443,6 @@ More generally, we want to think about measures which capture the skill of a **p
 
 These are commonly called **scoring rules** [@Gneiting2014-wh].
 
-## What Makes A Good Prediction?
-
-What do we want to see in a probabilistic projection $F$? 
-
-::: {.fragment .fade-in}
-
-- **Calibration**: Does the predicted CDF $F(y)$ align with the "true" distribution of observations $y$? 
-  $$\mathbb{P}(y \leq F^{-1}(\tau)) = \tau \qquad \forall \tau \in [0, 1]$$
-- **Dispersion**: Is the concentration (variance) of $F$ aligned with the concentration of observations?
-- **Sharpness**: How concentrated are the forecasts $F$?
-:::
-
-## Probability Integral Transform (PIT)
-
-Common to use the PIT to make these more concrete: $Z_F = F(y)$.
-
-The forecast is **probabilistically calibrated** if $Z_F \sim Uniform(0, 1)$.
-
-The forecast is **properly dispersed** if $\text{Var}(Z_F) = 1/12$.
-
-**Sharpness** can be measured by the width of a particular prediction interval. **A good forecast is a sharp as possible subject to calibration** [@Gneiting2007-my].
-
-## PIT Example: Well-Calibrated
-
-```{julia}
-#| label: fig-pit-2
-#| fig-cap: Comparison of "proper" and overdispersed PIT.
-#| echo: true
-#| code-fold: true
-#| layout-ncol: 2
-
-# "true" observation distribution is N(2, 0.5)
-obs = rand(Normal(2, 0.5), 50)
-# forecast according to the "correct" distribution and obtain PIT
-pit_corr = cdf(Normal(2, 0.45), obs)
-p_corr = histogram(pit_corr, bins=10, label=false, xlabel=L"$y$", ylabel="Count", size=(500, 500))
-
-xrange = 0:0.01:5
-p_cdf1 = plot(xrange, cdf.(Normal(2, 0.4), xrange), xlabel=L"$y$", ylabel="Cumulative Density", label="Forecast", size=(500, 500))
-plot!(p_cdf1, xrange, cdf.(Normal(2, 0.5), xrange), label="Truth")
-
-display(p_cdf1)
-display(p_corr)
-```
-
-## PIT Example: Underdispersed
-
-```{julia}
-#| label: fig-pit-3
-#| fig-cap: Comparison of "proper" and overdispersed PIT.
-#| echo: true
-#| code-fold: true
-#| layout-ncol: 2
-
-# forecast according to an underdispersed distribution and obtain PIT
-pit_under = cdf(Normal(2, 0.1), obs)
-p_under = histogram(pit_under, bins=10, label=false, xlabel=L"$y$", ylabel="Count", size=(500, 500))
-
-xrange = 0:0.01:5
-p_cdf2 = plot(xrange, cdf.(Normal(2, 0.1), xrange), xlabel=L"$y$", ylabel="Cumulative Density", label="Forecast", size=(500, 500))
-plot!(p_cdf2, xrange, cdf.(Normal(2, 0.5), xrange), label="Truth")
-
-display(p_cdf2)
-display(p_under)
-```
-
-
-## PIT Example: Overdispersed
-
-```{julia}
-#| label: fig-pit-1
-#| fig-cap: Comparison of "proper" and overdispersed PIT.
-#| echo: true
-#| code-fold: true
-#| layout-ncol: 2
-
-# forecast according to an overdispersed distribution and obtain PIT
-pit_over = cdf(Normal(2, 1), obs)
-p_over = histogram(pit_over, bins=10, label=false, xlabel=L"$y$", ylabel="Count", size=(500, 500))
-
-xrange = 0:0.01:5
-p_cdf3 = plot(xrange, cdf.(Normal(2, 1), xrange), xlabel=L"$y$", ylabel="Cumulative Density", label="Forecast", size=(500, 500))
-plot!(p_cdf3, xrange, cdf.(Normal(2, 0.5), xrange), label="Truth")
-
-display(p_cdf3)
-display(p_over)
-```
-
-
-## Scoring Rules
-
-A scoring rule $S(F, y)$ measures the "loss" of a predicted probability distribution $F$ once an observation $y$ is obtained. 
-
-Typically oriented so smaller = better.
-
-## Scoring Rule Examples
-
-
-1. Logarithmic: $S(F, y) = -\log F(y)$
-2. Quadratic (Brier): $S(F, y) = -2F(y) - \int_{-\infty}^\infty F^2(z) dz$ / $B(F, y) = \sum_i (y_i - F(y_i))^2$
-3. Continous Ranked Probability Score (CRPS): 
-   $$\begin{align*}
-   S(F, y) &= -\int (F(z) - \mathbb{I}(y \leq z))^2 dz \\
-   &= \mathbb{E}_F |Y -y| - \frac{1}{2} E_F | Y - Y'|
-   \end{align*}$$
-
-## Proper Scoring Rules
-
-**Proper** scoring rules are intended to encourage forecasters to provide their full (and honest) forecasts.
-
-Minimized when the forecasted distribution matches the observed distribution:
-
-$$\mathbb{E}_Y(S(G, G)) \leq \mathbb{E}_Y(S(F, G)) \qquad \forall F.$$
-
-It is **strictly proper** if equality holds only if $F = G$.
-
-## Sidenote: Why Not Use Classification Accuracy?
-
-Most classification algorithms produce a probability (*e.g.* logistic regression) of different outcomes. 
-
-A common skill metric for classification models is **accuracy** (sensitivity/specificity): given these probabilities and some threshold to translate them into categorical prediction.
-
-## The Problem With Classification Accuracy
-
-**The problem**: This translation is a *decision* problem, not a *statistical problem*. A probabilistic scoring rule over the predicted probabilities more accurately reflects the skill of the statistical model.
-
-## Logarithmic Score As Scoring Rule
-
-The **logarithmic score** $S(F, y) = -\log F(y)$ is (up to equivalence) the only **local** strictly proper scoring rule (locality &Rightarrow; score depends only on the observation).
-
-This is the negative log-probability: straightforward to use for the likelihood (frequentist forecasts) or posterior (Bayesian forecasts) and generalizes MSE.
-
-We will focus on the logarithmic score.
-
-## Important Caveat
-
-**A model can predict well without being "correct"!**
-
-For example, model selection (next two class weeks) using predictive criteria **does not mean** you are selecting the "true" model.
-
-**The causes of the data cannot be found in the data alone.**
 
 # Key Points and Upcoming Schedule
 
@@ -599,12 +466,6 @@ For example, model selection (next two class weeks) using predictive criteria **
 - "Tradeoff" reflects this decomposition (but it's not really a tradeoff).
 - Useful conceptual to think about the balance between not picking up on meaningful signals (underfitting) and modeling noise (overfitting).
 
-## Key Points (Model Skill)
-
-- $R^2$ is not a good measure of point prediction skill even for linear models! Use MSE instead.
-- Probabilistic forecasts should be assessed based on both calibration and sharpness.
-- Scoring rules as measures of probabilistic forecast skill.
-- Logarithmic score (negative log-probability) is the unique locally proper scoring rule.
 
 ## Next Classes
 

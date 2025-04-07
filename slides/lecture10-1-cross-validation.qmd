@@ -1,5 +1,5 @@
 ---
-title: "Cross Validation"
+title: "Scoring and Cross-Validation"
 subtitle: "Lecture 17"
 author: "Vivek Srikrishnan"
 course: "BEE 4850"
@@ -81,6 +81,189 @@ default(
 )
 ```
 
+# Last Class
+
+## Bias vs. Variance
+
+- **Bias** is error from mismatches between the model predictions and the data ($\text{Bias}[\hat{f}] = \mathbb{E}[\hat{f}] - y$).
+- **Variance** is error from over-sensitivity to small fluctuations in training inputs $D$ ($\text{Variance} = \text{Var}_D(\hat{f}(x; D)$).
+
+Commonly discussed in terms of "bias-variance tradeoff": more valuable to think of these as contributors to total error.
+
+## Overfitting and Underfitting
+
+- **Underfitting**: Model predicts individual data points poorly, high bias, think approximation error
+- **Overfitting**: Model generalizes poorly, high variance, think estimation error.
+
+## Model Degrees of Freedom
+
+Potential to overfit vs. underfit isn't directly related to standard metrics of "model complexity" (number of parameters, etc).
+
+Instead, think of **degrees of freedom**: how much flexibility is there given the model parameterization to "chase" reduced model error?
+
+## Regularization
+
+:::: {.columns}
+::: {.column width=50%}
+
+Can reduce degrees of freedom with **regularization**: tighter/more skeptical priors, shrinkage of estimates (*e.g.* LASSO) vs. "raw" MLE.
+
+:::
+::: {.column width=50%}
+![Regularization Meme](memes/prior_data_cow.jpg)
+
+::: {.caption}
+Source: Richard McElreath
+:::
+:::
+::::
+
+# Quantifying Prediction Skill
+
+## What Makes A Good Prediction?
+
+What do we want to see in a probabilistic projection $F$? 
+
+::: {.fragment .fade-in}
+
+- **Calibration**: Does the predicted CDF $F(y)$ align with the "true" distribution of observations $y$? 
+  $$\mathbb{P}(y \leq F^{-1}(\tau)) = \tau \qquad \forall \tau \in [0, 1]$$
+- **Dispersion**: Is the concentration (variance) of $F$ aligned with the concentration of observations?
+- **Sharpness**: How concentrated are the forecasts $F$?
+:::
+
+## Probability Integral Transform (PIT)
+
+Common to use the PIT to make these more concrete: $Z_F = F(y)$.
+
+The forecast is **probabilistically calibrated** if $Z_F \sim Uniform(0, 1)$.
+
+The forecast is **properly dispersed** if $\text{Var}(Z_F) = 1/12$.
+
+**Sharpness** can be measured by the width of a particular prediction interval. **A good forecast is a sharp as possible subject to calibration** [@Gneiting2007-my].
+
+## PIT Example: Well-Calibrated
+
+```{julia}
+#| label: fig-pit-2
+#| fig-cap: Comparison of "proper" and overdispersed PIT.
+#| echo: true
+#| code-fold: true
+#| layout-ncol: 2
+
+# "true" observation distribution is N(2, 0.5)
+obs = rand(Normal(2, 0.5), 50)
+# forecast according to the "correct" distribution and obtain PIT
+pit_corr = cdf(Normal(2, 0.45), obs)
+p_corr = histogram(pit_corr, bins=10, label=false, xlabel=L"$y$", ylabel="Count", size=(500, 500))
+
+xrange = 0:0.01:5
+p_cdf1 = plot(xrange, cdf.(Normal(2, 0.4), xrange), xlabel=L"$y$", ylabel="Cumulative Density", label="Forecast", size=(500, 500))
+plot!(p_cdf1, xrange, cdf.(Normal(2, 0.5), xrange), label="Truth")
+
+display(p_cdf1)
+display(p_corr)
+```
+
+## PIT Example: Underdispersed
+
+```{julia}
+#| label: fig-pit-3
+#| fig-cap: Comparison of "proper" and overdispersed PIT.
+#| echo: true
+#| code-fold: true
+#| layout-ncol: 2
+
+# forecast according to an underdispersed distribution and obtain PIT
+pit_under = cdf(Normal(2, 0.1), obs)
+p_under = histogram(pit_under, bins=10, label=false, xlabel=L"$y$", ylabel="Count", size=(500, 500))
+
+xrange = 0:0.01:5
+p_cdf2 = plot(xrange, cdf.(Normal(2, 0.1), xrange), xlabel=L"$y$", ylabel="Cumulative Density", label="Forecast", size=(500, 500))
+plot!(p_cdf2, xrange, cdf.(Normal(2, 0.5), xrange), label="Truth")
+
+display(p_cdf2)
+display(p_under)
+```
+
+
+## PIT Example: Overdispersed
+
+```{julia}
+#| label: fig-pit-1
+#| fig-cap: Comparison of "proper" and overdispersed PIT.
+#| echo: true
+#| code-fold: true
+#| layout-ncol: 2
+
+# forecast according to an overdispersed distribution and obtain PIT
+pit_over = cdf(Normal(2, 1), obs)
+p_over = histogram(pit_over, bins=10, label=false, xlabel=L"$y$", ylabel="Count", size=(500, 500))
+
+xrange = 0:0.01:5
+p_cdf3 = plot(xrange, cdf.(Normal(2, 1), xrange), xlabel=L"$y$", ylabel="Cumulative Density", label="Forecast", size=(500, 500))
+plot!(p_cdf3, xrange, cdf.(Normal(2, 0.5), xrange), label="Truth")
+
+display(p_cdf3)
+display(p_over)
+```
+
+
+## Scoring Rules
+
+**Scoring rules** compare observations against an entire probabilistic forecast.
+
+A scoring rule $S(F, y)$ measures the "loss" of a predicted probability distribution $F$ once an observation $y$ is obtained. 
+
+Typically oriented so smaller = better.
+
+## Scoring Rule Examples
+
+
+1. Logarithmic: $S(F, y) = -\log F(y)$
+2. Quadratic (Brier): $S(F, y) = -2F(y) - \int_{-\infty}^\infty F^2(z) dz$ / $B(F, y) = \sum_i (y_i - F(y_i))^2$
+3. Continous Ranked Probability Score (CRPS): 
+   $$\begin{align*}
+   S(F, y) &= -\int (F(z) - \mathbb{I}(y \leq z))^2 dz \\
+   &= \mathbb{E}_F |Y -y| - \frac{1}{2} E_F | Y - Y'|
+   \end{align*}$$
+
+## Proper Scoring Rules
+
+**Proper** scoring rules are intended to encourage forecasters to provide their full (and honest) forecasts.
+
+Minimized when the forecasted distribution matches the observed distribution:
+
+$$\mathbb{E}_Y(S(G, G)) \leq \mathbb{E}_Y(S(F, G)) \qquad \forall F.$$
+
+It is **strictly proper** if equality holds only if $F = G$.
+
+## Sidenote: Why Not Use Classification Accuracy?
+
+Most classification algorithms produce a probability (*e.g.* logistic regression) of different outcomes. 
+
+A common skill metric for classification models is **accuracy** (sensitivity/specificity): given these probabilities and some threshold to translate them into categorical prediction.
+
+## The Problem With Classification Accuracy
+
+**The problem**: This translation is a *decision* problem, not a *statistical problem*. A probabilistic scoring rule over the predicted probabilities more accurately reflects the skill of the statistical model.
+
+## Logarithmic Score As Scoring Rule
+
+The **logarithmic score** $S(F, y) = -\log F(y)$ is (up to equivalence) the only **local** strictly proper scoring rule (locality &Rightarrow; score depends only on the observation).
+
+This is the negative log-probability: straightforward to use for the likelihood (frequentist forecasts) or posterior (Bayesian forecasts) and generalizes MSE.
+
+We will focus on the logarithmic score.
+
+## Important Caveat
+
+**A model can predict well without being "correct"!**
+
+For example, model selection using predictive criteria **does not mean** you are selecting the "true" model.
+
+**The causes of the data cannot be found in the data alone.**
+
 # Cross-Validation
 
 ## Can We Drive Model Error to Zero?
@@ -143,9 +326,262 @@ The problem with $k$-fold CV, when data is scarce, is withholding $n/k$ points.
 
 1. Drop one value $y_i$.
 2. Refit model on rest of data $y_{-i}$.
-3. Evaluate $L(y_i | y_{-i})$.
-4. Repeat on rest of data set.
+3. Predict dropped point $p(\hat{y}_i | y_{-i})$.
+4. Evaluate score on dropped point ($-\log p(y_i | y_{-i})$).
+5. Repeat on rest of data set.
+
+## LOO-CV Example
+
+:::: {.columns}
+::: {.column}
+**Model**: 
+$$D \rightarrow S \ {\color{purple}\leftarrow U}$$
+$$S = f(D, U)$$
+:::
+
+::: {.column width=50%}
+```{julia}
+#| label: fig-cv-data
+#| fig-cap: Data for CV example.
+
+tds = let
+	fname = "data/tds/cuyaTDS.csv" # CHANGE THIS!
+	tds = DataFrame(CSV.File(fname))
+	tds[!, [:date, :discharge_cms, :tds_mgL]]
+end
+xx = [2, 5, 10, 20, 50, 100]
+
+p = scatter(
+	tds.discharge_cms,
+	tds.tds_mgL,
+	xlabel=L"Discharge (m$^3$/s)",
+	ylabel="Total dissolved solids (mg/L)",
+    markersize=5,
+	label="Observations",
+    xaxis=:log, 
+    xticks=(xx, string.(xx)),
+    ylims=(0, 750),
+    xlims=(1, 60)
+)
+plot!(p, size=(600, 600))
+```
+:::
+::::
+
+## LOO-CV Flow
+
+
+:::: {.columns}
+::: {.column width=50%}
+
+1. **Drop one value $y_i$**.
+2. Refit model on $y_{-i}$.
+3. Predict $p(\hat{y}_i | y_{-i})$.
+4. Evaluate $-\log p(y_i | y_{-i})$.
+5. Repeat on rest of data set.
+
+:::
+
+::: {.column width=50%}
+```{julia}
+#| label: fig-cv-data-1
+#| fig-cap: Data for CV example.
+
+p1 = deepcopy(p)
+drop_idx1 = [20]
+scatter!(p1, tds.discharge_cms[drop_idx1], tds.tds_mgL[drop_idx1], color=:red, markersize=5, label="Dropped")
+```
+:::
+::::
+
+## LOO-CV Flow
+
+
+:::: {.columns}
+::: {.column width=50%}
+
+1. Drop one value $y_i$.
+2. **Refit model on $y_{-i}$**.
+3. **Predict $p(\hat{y}_i | y_{-i})$**.
+4. Evaluate $-\log p(y_i | y_{-i})$.
+5. Repeat on rest of data set.
+
+:::
+
+::: {.column width=50%}
+```{julia}
+#| label: fig-cv-fit-1
+#| fig-cap: Data for CV example.
+
+function cv_tds(tds_dat, drop_idx)
+    function tds_riverflow_loglik(θ, tds, flow)
+        β₀, β₁, σ = θ # unpack parameter vector
+        μ = β₀ .+ β₁ * log.(flow) # find mean
+        ll = sum(logpdf.(Normal.(μ, σ), tds)) # compute log-likelihood
+        return ll
+    end
+
+    lb = [0.0, -1000.0, 1.0]
+    ub = [1000.0, 1000.0, 100.0]
+    θ₀ = [500.0, 0.0, 50.0]
+    optim_out = Optim.optimize(θ -> -tds_riverflow_loglik(θ, tds.tds_mgL[Not(drop_idx)], tds.discharge_cms[Not(drop_idx)]), lb, ub, θ₀)
+    θ_mle = round.(optim_out.minimizer; digits=0)
+
+    # simulate 10,000 predictions
+    x = 1:0.1:60
+    μ = θ_mle[1] .+ θ_mle[2] * log.(x)
+    y_pred = zeros(length(x), 10_000)
+    for i = 1:length(x)
+        y_pred[i, :] = rand(Normal(μ[i], θ_mle[3]), 10_000)
+    end
+    return (θ_mle, y_pred)
+end
+
+θ_drop1, fit_drop1 = cv_tds(tds, drop_idx1)
+# take quantiles to find prediction intervals
+y_q = mapslices(v -> quantile(v, [0.05, 0.5, 0.95]), fit_drop1; dims=2)
+x = 1:0.1:60
+plot!(p1, 
+    x,
+    y_q[:, 2],
+    ribbon = (y_q[:, 2] - y_q[:, 1], y_q[:, 3] - y_q[:, 2]),
+    linewidth=3, 
+    fillalpha=0.2, 
+    label="CV Fit",
+    color=:red,
+    size=(600, 600))
+```
+:::
+::::
+
+## LOO-CV Flow
+
+:::: {.columns}
+::: {.column width=50%}
+
+1. Drop one value $y_i$.
+2. Refit model on $y_{-i}$.
+3. Predict $p(\hat{y}_i | y_{-i})$.
+4. **Evaluate $-\log p(y_i | y_{-i})$**.
+5. Repeat on rest of data set.
+
+:::
+
+::: {.column width=50%}
+```{julia}
+#| output: false
+
+μ_pred1 = θ_drop1[1] .+ θ_drop1[2] * log.(tds.discharge_cms[drop_idx1])
+score_drop1 = -logpdf.(Normal.(μ_pred1, θ_drop1[3]), tds.tds_mgL[drop_idx1])
+
+μ_insamp1 = θ_drop1[1] .+ θ_drop1[2] * log.(tds.discharge_cms[Not(drop_idx1)])
+score_insamp1 = -mean(logpdf.(Normal.(μ_insamp1, θ_drop1[3]), tds.tds_mgL[Not(drop_idx1)]))
+```
+
+**Out of Sample**: 
+
+$p(y_i | y_{-i})$ = `{julia} round(score_drop1[1]; digits=1)`
+
+**In Sample**:
+
+ $p(\hat{y}_{-i} | y_{-i})$ = `{julia} round(score_insamp1; digits=1)`
+
+:::
+::::
+
+## LOO-CV Flow
+
+
+:::: {.columns}
+::: {.column width=50%}
+
+1. Drop one value $y_i$.
+2. Refit model on $y_{-i}$.
+3. Predict $p(\hat{y}_i | y_{-i})$.
+4. Evaluate $-\log p(y_i | y_{-i})$.
+5. **Repeat on rest of data set**.
+
+:::
+
+::: {.column width=50%}
+```{julia}
+#| output: false
+
+score_drop = zeros(nrow(tds))
+for i = 1:nrow(tds)
+    θ_drop, fit_drop = cv_tds(tds, i)
+    μ_pred = θ_drop[1] .+ θ_drop[2] * log.(tds.discharge_cms[i])
+    score_drop[i] = -logpdf.(Normal.(μ_pred, θ_drop[3]), tds.tds_mgL[i])
+end
+```
+
+**LOO-CV Score**: `{julia} round(mean(score_drop); digits=1)`
+
+This is the **average log-likelihood of out-of-sample data**.
+:::
+::::
+
+## Bayesian LOO-CV
+
+Bayesian LOO-CV involves using the posterior predictive distribution
+
+$$\begin{align*}
+\text{lppd}_\text{cv} &= \sum_{i=1}^N \log p_{\text{post}}(y_i | \theta_{-i}) \\
+&\approx \sum_{i=1}^N \frac{1}{S} \sum_{s=1}^S log p_{\text{post}}(y_i | \theta_{-i, s}),
+\end{align*}$$
+
+which requires refitting the model without $y_i$ for every data point.
+
+
+## Leave-$k$-Out Cross-Validation
+
+Drop $k$ values, refit model on rest of data, check for predictive skill.
+
+As $k \to n$, this reduces to the prior predictive distribution
+$$p(y^{\text{rep}}) = \int_{\theta} p(y^{\text{rep}} | \theta) p(\theta) d\theta.$$
+
+## Cross-Validation and Model Tuning
+
+Can use cross-validation to evaluate overfitting instead of using different model structure.
+
+What happens to CV error with tighter priors/regularization penalty?
+
+But remember, **prediction is not the same as scientific inference**: try to balance both considerations.
+ 
+## Challenges with Cross-Validation
+
+::: {.incremental}
+- This can be very computationally expensive!
+- We often don't have a lot of data for calibration, so holding some back can be a problem.
+- Can have a negative bias for future prediction.
+- How to divide data with spatial or temporal structure? This can be addressed by partitioning the data more cleverly:
+  $$y = \{y_{1:t}, y_{-((t+1):T)}\}$$
+  but this makes the data problem worse.
+::: 
+
+
+# Key Points and Upcoming Schedule
+
+## Key Points (Scoring Rules)
+
+- Probabilistic forecasts should be assessed based on both calibration and sharpness.
+- Scoring rules as measures of probabilistic forecast skill.
+- Logarithmic score (negative log-probability) is the unique locally proper scoring rule.
+
+## Key Points (Cross-Validation)
+
+- Gold standard for predictive skill assessment.
+- Hold out data (one or more points) randomly, refit model, and quantify predictive skill.
+- LOO-CV maximizes use of data but can be computationally expensive.
+
+## Next Classes
+
+**Wednesday**: Entropy and Information Criteria
+
+## Assessments
+
+**HW4**: Due on 4/11 at 9pm.
 
 # References
 
-## Refernences (Scroll for Full List)
+## References (Scroll for Full List)

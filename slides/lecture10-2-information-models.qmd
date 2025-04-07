@@ -1,0 +1,448 @@
+---
+title: "Information and Entropy"
+subtitle: "Lecture 17"
+author: "Vivek Srikrishnan"
+course: "BEE 4850"
+institution: "Cornell University"
+date: "March 26, 2024"
+format:
+    revealjs:
+        slide-number: c/t
+        show-slide-number: all
+        center-title-slide: true
+        width: 1280
+        height: 720
+        transition: none
+        toc: true
+        toc-depth: 1
+        toc-title: "Overview"
+        history: false
+        link-external-newwindow: true
+        theme: ../sass/slides.scss
+        template-partials:
+            - title-slide.html
+        menu:
+            numbers: true
+        html-math-method: mathjax
+        include-in-header: mathjax-config.html
+        date-format: long
+        email-obfuscation: javascript
+        chalkboard:
+            theme: whiteboard
+            buttons: true
+        mermaid: 
+            theme: dark
+engine: julia
+filters:
+  - code-fullscreen
+---
+
+```{julia}
+#| output: false
+
+import Pkg
+Pkg.activate(@__DIR__)
+Pkg.instantiate()
+```
+
+```{julia}
+#| output: false
+
+using Random
+using DataFrames
+using DataFramesMeta
+using CSV
+using Dates
+using Distributions
+using ColorSchemes
+using Plots
+using StatsPlots
+using StatsBase
+using Optim
+using LaTeXStrings
+using Measures
+
+Random.seed!(1)
+ENV["GKSwstype"] = "nul"
+
+plot_font = "Computer Modern"
+default(
+    fontfamily=plot_font,
+    linewidth=3, 
+    framestyle=:box, 
+    label=nothing, 
+    grid=false,
+    guidefontsize=18,
+    legendfontsize=16,
+    tickfontsize=16,
+    titlefontsize=20,
+    bottom_margin=10mm,
+    left_margin=5mm
+)
+```
+
+# Last Class
+
+## What Makes A Good Prediction?
+
+What do we want to see in a probabilistic projection $F$? 
+
+::: {.fragment .fade-in}
+
+- **Calibration**: Does the predicted CDF $F(y)$ align with the "true" distribution of observations $y$? 
+  $$\mathbb{P}(y \leq F^{-1}(\tau)) = \tau \qquad \forall \tau \in [0, 1]$$
+- **Dispersion**: Is the concentration (variance) of $F$ aligned with the concentration of observations?
+- **Sharpness**: How concentrated are the forecasts $F$?
+:::
+
+## Probability Integral Transform (PIT)
+
+Common to use the PIT to make these more concrete: $Z_F = F(y)$.
+
+The forecast is **probabilistically calibrated** if $Z_F \sim Uniform(0, 1)$.
+
+The forecast is **properly dispersed** if $\text{Var}(Z_F) = 1/12$.
+
+**Sharpness** can be measured by the width of a particular prediction interval. **A good forecast is a sharp as possible subject to calibration** [@Gneiting2007-my].
+
+
+## Scoring Rules
+
+A scoring rule $S(F, y)$ measures the "loss" of a predicted probability distribution $F$ once an observation $y$ is obtained. 
+
+**Proper** scoring rules are minimized when the forecasted distribution matches the observed distribution:
+
+$$\mathbb{E}_Y(S(G, G)) \leq \mathbb{E}_Y(S(F, G)) \qquad \forall F.$$
+
+## $k$-Fold Cross-Validation
+
+What if we repeated this procedure for multiple held-out sets?
+
+1. Randomly split data into $k = n / m$ equally-sized subsets.
+2. For each $i = 1, \ldots, k$, fit model to $y_{-i}$ and test on $y_i$.
+
+If data are large, this is a good approximation.
+
+
+## LOO-CV Algorithm
+
+1. Drop one value $y_i$.
+2. Refit model on rest of data $y_{-i}$.
+3. Predict dropped point $p(\hat{y}_i | y_{-i})$.
+4. Evaluate score on dropped point ($\log p(y_i | y_{-i})$).
+5. Repeat on rest of data set.
+
+# Information and Uncertainty
+
+## Interpreting Scores
+
+When directly comparing models, this can be straightforward: lower (usually) score => better.
+
+But this doesn't tell us anything about whether a particular score is good or even acceptable: How do we quantify the "distance" from "perfect" prediction?
+
+## Uncertainty and Information
+
+More uncertainty &Rightarrow; predictions are more difficult.
+
+One approach: quantify **information** as the reduction in uncertainty conditional on a prediction or projection.
+
+**Example**: Perfect prediction &Rightarrow; complete reduction in uncertainty (observation will always match prediction).
+
+## Quantifying Uncertainty
+
+What properties should a measure of uncertainty possess?
+
+::: {.incremental}
+1. Should be continuous wrt probabilities;
+2. Should increase with number of possible events;
+3. Should be additive.
+:::
+
+## Entropy
+
+It turns out there is only one function which satisfies these conditions: **Information Entropy** [@Shannon1948-rb]
+
+$$H(p) = -\mathbb{E}(\log(p_i)) = - \sum_{i=1}^n p_i \log p_i$$
+
+The entropy (or uncertainty) of a probability distribution is the average log-probability of an event.
+
+## Entropy Example
+
+Suppose in Ithaca we have "true" probabilities of rain, sunshine, and fog which are 0.55, 0.2, and 0.25.
+
+$$H(p) = -(0.55 \log(0.55) + 0.2 \log(0.2) + 0.25\log(0.25) \approx 1.0$$
+
+## Entropy Example
+
+Now suppose in Dubai these probabilities are 0.01, 0.95, and 0.04, respectively.
+
+$$H(p) = -(0.01 \log(0.01) + 0.95 \log(0.95) + 0.04\log(0.04) \approx 0.22$$
+
+$H$ is lower in Dubai than in Ithaca because there is **less uncertainty about the outcome** on a given day.
+
+## Maximum Entropy
+
+As an aside, what distribution maximizes entropy (has the most uncertainty subject to its constraints)?
+
+This is equivalent to a distribution being the "least informative" given a set of constraints.
+
+Can think of this as being the distribution which can emerge through the greatest combination of data-generating events.
+
+## Maximum Entropy Examples
+
+1. From the Central Limit Theorem, Gaussians emerge as the limit of sums of arbitrary random variables with finite mean and variance.
+
+    This is equivalent to Gaussians as the entropy-maximizing distribution for a given (finite) mean and variance.
+
+2. Binomial distributions maximize entropy under the assumptions of two outcomes with constant probabilities.
+
+This is where generalized linear models come from!
+
+## From Entropy to Accuracy
+
+**Entropy**: Measure of uncertainty across a distribution $p$.
+
+**Divergence**: Uncertainty induced by using probabilities from one distribution $q$ to describe outcomes from another "true" distribution $p$.
+
+The lower the divergence between a predictive distribution $q$ and a "true" distribution $p$, the more "skill" $q$ has.
+
+## Kullback-Leibler Divergence
+
+One way to formalize divergence: how much additional entropy (uncertainty) is introduced by using a model $q$ instead of the true target $p$?
+
+$$D_{KL}(p, q) = \sum_i p_i (\log(p_i) - \log(q_i)) = \sum_i p_i \log\left(\frac{p_i}{q_i}\right)$$
+
+Thus the "divergence" (intuitively: distance) between two distributions is the **average difference in log-probabilities between the target $p$ and the model $q$**.
+
+## K-L Divergence Example
+
+:::: {.columns}
+::: {.column width=50%}
+Suppose the "true" probability of rain is $p(\text{Rain}) = 0.65$ and the "true" probability of $p(\text{Sunshine})=0.35$.
+
+What happens as we change $q(\text{Rain})$?
+:::
+::: {.column width=50%}
+```{julia}
+#| label: fig-kl-example
+#| fig-cap: Example of K-L Divergence
+#| echo: true
+#| code-fold: true
+
+p_true = [0.65, 0.35]
+q_rain = 0.01:0.01:0.99
+
+function kl_divergence_2outcome(p, q)
+    div_diff = log.(p) .- log.(q)
+    return sum(p .* div_diff)
+end
+
+kl_out(q) = kl_divergence_2outcome(p_true, [q, 1 - q])
+plot(q_rain, kl_out.(q_rain), lw=3, label=false, ylabel="Kullback-Leibler Divergence", xlabel=L"$q(\textrm{Rain})$")
+vline!([p_true[1]], lw=3, color=:red, linestyle=:dash, label="True Probability")
+plot!(size=(600, 550))
+```
+:::
+::::
+
+## K-L Divergence Is Not Symmetric
+
+:::: {.columns}
+::: {.column width=50%}
+```{julia}
+#| label: fig-kl-symmetry-1
+#| fig-cap: Lack of symmetry of the K-L Divergence
+#| code-fold: true
+#| echo: true
+
+p = MixtureModel(Normal, [(-1, 0.25), (1, 0.25)], [0.5, 0.5])
+psamp = rand(p, 100_000)
+q = Normal(0, 1)
+qsamp = rand(q, 100_000)
+
+# Monte Carlo estimation of K-L Divergence
+kl_pq = mean(logpdf.(p, psamp) .- logpdf.(q, psamp))
+kl_qp = mean(logpdf.(q, qsamp) .- logpdf.(p, qsamp))
+p1 = density(psamp, lw=3, label=L"$p$", color=:blue, xlabel=L"$x$", ylabel="Density")
+density!(p1, qsamp, lw=3, label=L"$q$", color=:black, linestyle=:dash)
+plot!(p1, size=(500, 300))
+```
+
+$D_{KL}(p, q) =$ `{julia} round(kl_pq; digits=2)`
+
+$D_{KL}(q, p) =$ `{julia} round(kl_qp; digits=2)`
+
+:::
+::: {.column width=50%}
+```{julia}
+#| label: fig-kl-symmetry-2
+#| fig-cap: Lack of symmetry of the K-L Divergence
+#| code-fold: true
+#| echo: true
+
+p = MixtureModel(Normal, [(-1, 0.25), (1, 0.25)], [0.5, 0.5])
+psamp = rand(p, 100_000)
+q = Normal(-1, 0.25)
+qsamp = rand(q, 100_000)
+
+# Monte Carlo estimation of K-L Divergence
+kl_pq = mean(logpdf.(p, psamp) .- logpdf.(q, psamp))
+kl_qp = mean(logpdf.(q, qsamp) .- logpdf.(p, qsamp))
+p2 = density(psamp, lw=3, label=L"$p$", color=:blue, xlabel=L"$x$", ylabel="Density")
+density!(p2, qsamp, lw=3, label=L"$q$", color=:black, linestyle=:dash)
+plot!(p2, size=(500, 300))
+```
+
+
+$D_{KL}(p, q) =$ `{julia} round(kl_pq; digits=2)`
+
+$D_{KL}(q, p) =$ `{julia} round(kl_qp; digits=2)`
+
+
+:::
+::::
+
+## Divergence for Model Comparison
+
+**So Far**: Divergence as measure of lack of accuracy.
+
+But we never know the "true" distribution of outcomes.
+
+It turns out we rarely need to do this: no model will be "right," so we're often interested in comparing two candidate models $q$ and $r$.
+
+
+## Divergence for Model Comparison
+
+What is the difference between $D_{KL}(p, q)$ and $D_{KL}(p, r)$?
+
+$$
+D_{KL}(p, q) - D_{KL}(p, r) = \sum_i p_i (\log(r_i) - \log(q_i))
+$$
+
+We don't know $p_i$, but comparing the logarithmic scores $S(r) = \sum_i \log(r_i)$ and $S(q) = \sum_i \log(q_i)$ gives us an approximation.
+
+## Deviance Scale
+
+This **log-predictive-density** score is better when larger.
+
+Common to see this converted to **deviance**, which is $-2\text{lppd}$:
+
+- $-1$ reorients so smaller is better;
+- Multiplied by $2$ for historical reasons (cancels out the -1/2 in the Gaussian likelihood).
+
+# Overfitting and Deviance
+
+## Importance of Holding Out Data
+
+- Training data contains information about those predictions (reducing cross-entropy).
+- Testing model on training data therefore isn't a test of "pure" prediction.
+
+## Deviance and Degrees of Freedom
+
+```{julia}
+#| label: fig-deviance-sim
+#| fig-cap: Simulation of in vs. out of sample deviance calculations with increasing number of simulations
+#| layout-ncol: 2
+#| echo: true
+#| code-fold: true
+
+function calculate_deviance(y_gen, x_gen, y_oos, x_oos; degree=2, reg=Inf)
+    # fit model
+    lb = [-5 .+ zeros(degree); 0.01]
+    ub = [5 .+ zeros(degree); 10.0]
+    p0 = [zeros(degree); 5.0]
+
+    function model_loglik(p, y, x, reg)
+        if mean(p[1:end-1]) <= reg
+            ll = 0
+            for i = 1:length(y)
+                μ = sum(x[i, 1:degree] .* p[1:end-1])
+                ll += logpdf(Normal(μ, p[end]), y[i])
+            end
+        else
+            ll = -Inf
+        end
+        return ll
+    end
+
+    result = optimize(p -> -model_loglik(p, y_gen, x_gen, reg), lb, ub, p0)
+    θ = result.minimizer
+
+    function deviance(p, y_pred, x_pred)
+        dev = 0
+        for i = 1:length(y_pred)
+            μ = sum(x_pred[i, 1:degree] .* p[1:end-1])
+            dev += -2 * logpdf(Normal(μ, p[end]), y_pred[i])
+        end
+        return dev
+    end
+
+    dev_is = deviance(θ, y_gen, x_gen)
+    dev_oos = deviance(θ, y_oos, x_oos)
+    return (dev_is, dev_oos)
+end
+
+
+N_sim = 10_000
+
+function simulate_deviance(N_sim, N_data; reg=Inf)
+    d_is = zeros(5, 4)
+    for d = 1:5
+        dev_out = zeros(N_sim, 2)
+        for n = 1:N_sim
+            x_gen = rand(Uniform(-2, 2), (N_data, 5))
+            μ_gen = [0.1 * x_gen[i, 1] - 0.3 * x_gen[i, 2] for i in 1:N_data]
+            y_gen = rand.(Normal.(μ_gen, 1))
+
+            x_oos = rand(Uniform(-2, 2), (N_data, 5))
+            μ_oos = [0.1 * x_oos[i, 1] - 0.3 * x_oos[i, 2] for i in 1:N_data]
+            y_oos = rand.(Normal.(μ_oos, 1))
+
+            dev_out[n, :] .= calculate_deviance(y_gen, x_gen, y_oos, x_oos, degree=d, reg=reg)
+        end
+        d_is[d, 1] = mean(dev_out[:, 1])
+        d_is[d, 2] = std(dev_out[:, 1])
+        d_is[d, 3] = mean(dev_out[:, 2])
+        d_is[d, 4] = std(dev_out[:, 2])
+    end
+    return d_is
+end
+
+d_20 = simulate_deviance(N_sim, 20)
+p1 = scatter(collect(1:5) .- 0.1, d_20[:, 1], yerr=d_20[:, 2], color=:blue, linecolor=:blue, lw=2, markersize=5, label="In Sample", xlabel="Number of Predictors", ylabel="Deviance", title=L"$N = 20$")
+scatter!(p1, collect(1:5) .+ 0.1, d_20[:, 3], yerr=d_20[:, 4], lw=2, markersize=5, color=:black, linecolor=:black, label="Out of Sample")
+plot!(p1, size=(600, 550))
+
+d_100 = simulate_deviance(N_sim, 100)
+p2 = scatter(collect(1:5) .- 0.1, d_100[:, 1], yerr=d_100[:, 2], color=:blue, linecolor=:blue, lw=2, markersize=5, label="In Sample", xlabel="Number of Predictors", ylabel="Deviance", title=L"$N = 100$")
+scatter!(p2, collect(1:5) .+ 0.1, d_100[:, 3], yerr=d_100[:, 4], lw=2, markersize=5, color=:black, linecolor=:black, label="Out of Sample")
+plot!(p2, size=(600, 550))
+
+display(p1)
+display(p2)
+```
+
+# Key Points and Upcoming Schedule
+
+## Key Points 
+
+- **Information entropy** as measure of uncertainty.
+- **Kullback-Leiber Divergence**: measure of "distance" between two distributions.
+- Difference between K-L divergences lets us compare predictive skill of two models even without knowing "true" probabilities of events.
+- **Deviance**: Multiply log-predictive score by -2.
+
+## Next Classes
+
+**Next Week**: Spring Break
+
+**Week After**: Information Criteria for Model Comparison
+
+**Rest of Semester**: Specific topics useful for environmental data analysis (extremes, missing data, etc).
+
+## Assessments
+
+**HW4**: Due on 4/11 at 9pm.
+
+# References
+
+## References (Scroll for Full List)
