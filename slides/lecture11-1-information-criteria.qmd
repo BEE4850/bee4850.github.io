@@ -220,24 +220,13 @@ In other words:
 
 ## Expected Out-Of-Sample Predictive Accuracy
 
-The out-of-sample predictive fit of a new data point $\tilde{y}_i$ is
-
-$$
-\begin{align}
-\log p(\tilde{y}_i) &= \mathbb{E} \log \left[p(\tilde{y}_i | \theta)\right] \\
-&= \log \int p(\tilde{y_i} | \theta) p(\theta)\,d\theta.
-\end{align}
-$$
-
-## Expected Out-Of-Sample Predictive Accuracy
-
-However, the out-of-sample data $\tilde{y}_i$ is itself unknown, so we need to compute the *expected out-of-sample log-predictive density*
+We want to compute the *expected out-of-sample log-predictive density*
 
 $$
 \begin{align}
 \text{elpd} &= \text{expected log-predictive density for } \tilde{y}_i \\
-&= \mathbb{E}_P \left[\log p_\text{post}(\tilde{y}_i)\right] \\
-&= \int \log\left(p_\text{post}(\tilde{y}_i)\right) P(\tilde{y}_i)\,d\tilde{y}.
+&= \mathbb{E}_P \left[\log p(\tilde{y}_i)\right] \\
+&= \int \log\left(p(\tilde{y}_i)\right) P(\tilde{y}_i)\,d\tilde{y}.
 \end{align}
 $$
 
@@ -246,10 +235,20 @@ $$
 What is the challenge?
 
 ::: {.fragment .fade-in}
-We don't know $p$ (the distribution of new data)!
+We don't know $P$ (the distribution of new data)!
 
-We need some measure of the error induced by using an approximating distribution $q$ from some model.
 :::
+
+## Expected Out-Of-Sample Predictive Accuracy
+
+We need some measure of the error induced by using an approximating distribution $Q$ from some model.
+
+$$\begin{align}
+Q(\tilde{y}_i) &= \mathbb{E} \log \left[p(\tilde{y}_i | \theta)\right] \\
+&= \log \int p(\tilde{y_i} | \theta) p(\theta)\,d\theta.
+\end{align}$$
+
+Here $\theta$ can be the MLE or integrated over the sampling or posterior.
 
 # Information Criteria
 
@@ -263,11 +262,7 @@ The idea: estimate predictive error using the fitted model.
 
 There is a common framework for all of these:
 
-If we compute the expected log-predictive density for the existing data $p(y | \theta)$, this will be too good of a fit and will overestimate the predictive skill for new data.
-
-## Information Criteria Corrections
-
-We can adjust for that bias by correcting for the *effective number of parameters*, which can be thought of as the expected degrees of freedom in a model contributing to overfitting.
+$$\widehat{\text{elpd}} = \underbrace{\log p(y | \theta, \mathcal{M})}_{\text{in-sample log-predictive density}} - \underbrace{d(\mathcal{M})}_{\text{penalty for degrees of freedom}}$$
 
 
 ## Akaike Information Criterion (AIC)
@@ -286,9 +281,9 @@ Due to this convention, lower AICs are better (they correspond to a higher predi
 
 ## AIC Correction Term
 
-In the case of a normal model with independent and identically-distributed data and uniform priors, $k$ is the asymptotically "correct" bias term (there are modified corrections for small sample sizes).
+In the case of a model with normal sampling distributions, uniform priors, and sample size $N >> k$, $k$ is the asymptotically "correct" bias term (there are modified corrections for small sample sizes).
 
-However, with more informative priors and/or hierarchical models, the bias correction $k$ is no longer appropriate, as there is less "freedom" associated with each parameter.
+However, with more informative priors and/or hierarchical models, the bias correction $k$ is no longer quite right, as there is less "freedom" associated with each parameter.
 
 ## AIC and Deviance Example
 
@@ -299,9 +294,9 @@ However, with more informative priors and/or hierarchical models, the bias corre
 #| echo: true
 #| code-fold: true
 
-scatter!(p1, collect(1:5) .+ 0.2, d_20[:, 1] .+ 2 * (1:5), yerr=d_20[:, 2], lw=2, markersize=5, color=:red, linecolor=:black, label="AIC")
+scatter!(p1, collect(1:5) .+ 0.2, d_20[:, 1] .+ 2 * (2:6), yerr=d_20[:, 2], lw=2, markersize=5, color=:red, linecolor=:black, label="AIC")
 
-scatter!(p2, collect(1:5) .+ 0.2, d_100[:, 1] .+ 2 * (1:5), yerr=d_20[:, 2], lw=2, markersize=5, color=:red, linecolor=:black, label="AIC")
+scatter!(p2, collect(1:5) .+ 0.2, d_100[:, 1] .+ 2 * (2:6), yerr=d_20[:, 2], lw=2, markersize=5, color=:red, linecolor=:black, label="AIC")
 
 display(p1)
 display(p2)
@@ -317,8 +312,8 @@ display(p2)
 :::
 ::: {.column width=50%}
 ```{julia}
-#| output: false
-#| echo: false
+#| echo: true
+#| code-fold: true
 #| label: fig-gev-data
 #| fig-cap: San Francisco tide gauge data
 
@@ -371,6 +366,7 @@ plot!(psurge, size=(600, 400))
 
 ```
 :::
+::::
 
 ## AIC: Storm Surge Example
 
@@ -495,6 +491,12 @@ Some basic rules of thumb (from @Burnham2004-do):
 - $4 < \Delta_i < 7$ suggests "less" support;
 - $\Delta_i > 10$ suggests "weak" or "no" support.
 
+## Model Averaging vs. Selection
+
+Model averaging can sometimes be beneficial vs. model selection.
+
+Model selection can introduce bias from the selection process (this is particularly acute for stepwise selection due to path-dependence).
+
 ## AIC and Model Evidence
 
 $\exp(-\Delta_i/2)$ can be thought of as a measure of the likelihood of the model given the data $y$. 
@@ -508,12 +510,6 @@ $$w_i = \frac{\exp(-\Delta_i/2)}{\sum_{m=1}^M \exp(-\Delta_m/2)}.$$
 
 Model projections can then be weighted based on $w_i$, which can be interpreted as the probability that $M_i$ is the best (in the sense of approximating the "true" predictive distribution) model in $\mathcal{M}$.
 
-## Model Averaging vs. Selection
-
-Model averaging can sometimes be beneficial vs. model selection.
-
-Model selection can introduce bias from the selection process (this is particularly acute for stepwise selection due to path-dependence).
-
 # Other Information Criteria
 
 ## Bayesian Information Criteria (BIC)
@@ -521,6 +517,8 @@ Model selection can introduce bias from the selection process (this is particula
 $$\text{BIC} = -2 \left(\log p(y | \hat{\theta}_\text{MLE})\right) + k\log n$$
 
 Approximation of **log-marginal likelihood** $$\log p(\mathcal{M}) = \log \int_\theta p(y | \theta, \mathcal{M}) p(\theta | \mathcal{M}) d\theta$$ under a whole host of assumptions related to large-sample approximation (so priors don't matter).
+
+Note that $\log p(\mathcal{M})$ is the *prior* predictive density, which is why BIC penalizes model complexity more than AIC.
 
 ## BIC For Model Comparison
 
@@ -537,7 +535,7 @@ This means that $\Delta \text{BIC}$ gives an approximation of the posterior mode
 - BIC is **consistent** but **not efficient**.
 
 ::: {.fragment .fade-in}
-BIC vs. AIC is the tradeoff between causal vs. predictive analyses. **Generally not coherent to use both for the same problem**.
+BIC vs. AIC is analogous to the tradeoff between causal vs. predictive analyses. **Generally not coherent to use both for the same problem**.
 :::
 
 ## Other Information Criteria
@@ -550,11 +548,11 @@ The Deviance Information Criterion (DIC) is a more Bayesian generalization of AI
 $$\hat{\theta}_\text{Bayes} = \mathbb{E}\left[\theta | y\right]$$
 and a bias correction derived from the data.
 
-## DIC
+## DIC Formula
 
-$$\widehat{\text{elpd}}_\text{DIC} = \log p(y | \hat{\theta}_\text{Bayes}) - p_{\text{DIC}},$$
+$$\widehat{\text{elpd}}_\text{DIC} = \log p(y | \hat{\theta}_\text{Bayes}) - d_{\text{DIC}},$$
 where
-$$p_\text{DIC} = 2\left(\log p(y | \hat{\theta}_\text{Bayes}) - \mathbb{E}_\text{post}\left[\log p(y | \theta)\right]\right).$$
+$$d_\text{DIC} = 2\left(\log p(y | \hat{\theta}_\text{Bayes}) - \mathbb{E}_\text{post}\left[\log p(y | \theta)\right]\right).$$
 
 Then, as with AIC, $$\text{DIC} = -2\widehat{\text{elpd}}_\text{DIC}.$$
 
@@ -573,10 +571,10 @@ The key difference is the impact of priors on parameter estimation and model deg
 
 ## Watanabe-Akaike Information Criterion (WAIC)
 
-$$\widehat{\text{elpd}}_\text{WAIC} = \sum_{i=1}^n \log \int p(y_i | \theta) p_\text{post}(\theta)\,d\theta - p_{\text{WAIC}},$$
+$$\widehat{\text{elpd}}_\text{WAIC} = \sum_{i=1}^n \log \int p(y_i | \theta) p_\text{post}(\theta)\,d\theta - d_{\text{WAIC}},$$
 
 where
-$$p_\text{WAIC} = \sum_{i=1}^n \text{Var}_\text{post}\left(\log p(y_i | \theta)\right).$$
+$$d_\text{WAIC} = \sum_{i=1}^n \text{Var}_\text{post}\left(\log p(y_i | \theta)\right).$$
 
 ## WAIC Correction Factor
 
@@ -590,8 +588,6 @@ $p_\text{WAIC}$ is an estimate of the number of "unconstrained" parameters in th
 
 - WAIC can be viewed as an approximation to leave-one-out CV, and averages over the entire posterior, vs. AIC and DIC which use point estimates.
 - But it doesn't work well with highly structured data; no real alternative to more clever uses of Bayesian cross-validation.
-
-
 
 
 # Key Takeaways and Upcoming Schedule
