@@ -4,7 +4,7 @@ subtitle: "Lecture 18"
 author: "Vivek Srikrishnan"
 course: "BEE 4850"
 institution: "Cornell University"
-date: "March 31, 2025"
+date: "April 7, 2025"
 format:
     revealjs:
         slide-number: c/t
@@ -244,8 +244,8 @@ We don't know $P$ (the distribution of new data)!
 We need some measure of the error induced by using an approximating distribution $Q$ from some model.
 
 $$\begin{align}
-Q(\tilde{y}_i) &= \mathbb{E} \log \left[p(\tilde{y}_i | \theta)\right] \\
-&= \log \int p(\tilde{y_i} | \theta) p(\theta)\,d\theta.
+Q(\tilde{y}_i) &= \mathbb{E}_\theta \left[p(\tilde{y}_i | \theta)\right] \\
+&= \int p(\tilde{y_i} | \theta) p(\theta)\,d\theta.
 \end{align}$$
 
 Here $\theta$ can be the MLE or integrated over the sampling or posterior.

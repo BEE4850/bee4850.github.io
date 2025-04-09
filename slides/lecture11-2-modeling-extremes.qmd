@@ -1,10 +1,10 @@
 ---
-title: "Information Criteria"
-subtitle: "Lecture 18"
+title: "Modeling Extreme Values"
+subtitle: "Lecture 19"
 author: "Vivek Srikrishnan"
 course: "BEE 4850"
 institution: "Cornell University"
-date: "March 31, 2025"
+date: "April 9, 2025"
 format:
     revealjs:
         slide-number: c/t
@@ -96,7 +96,17 @@ default(
 
 # Extreme Values
 
+## What Are Some Examples of Extremes?
+
+::: {.fragment .fade-in}
+- When An Event is Rare?
+- When A Variable Exceeds Some High Threshold?
+- When An Event Causes a Catastrophe?
+:::
+
 ## Two Ways To Frame "Extreme" Values
+
+These are **values with a very low probability of occurring**, not necessarily high-impact events (which don't have to be rare!).
 
 1. "Block" extremes, *e.g.* annual maxima (**block maxima**)?
 2. Values which exceed a certain threshold (**peaks over threshold**)?
@@ -130,7 +140,7 @@ end
 
 dat = load_data("data/surge/norfolk-hourly-surge-2015.csv")
 
-p1 = plot(dat.datetime, dat.gauge; ylabel="Gauge Measurement (m)", label="Observed", legend=:topleft, tickfontsize=14, guidefontsize=16, legendfontsize=14, xlabel="Date/Time", bottom_margin=5mm, left_margin=5mm, right_margin=5mm)
+p1 = plot(dat.datetime, dat.gauge; ylabel="Gauge Measurement (m)", label="Observed", legend=:topleft, xlabel="Date/Time", bottom_margin=5mm, left_margin=5mm, right_margin=5mm)
 ```
 
 
@@ -159,7 +169,7 @@ plot!(p1, dat.datetime, dat.harmonic, label="Predicted", alpha=0.7)
 #| label: fig-norfolk-data-detrend
 #| fig-cap: 2015 detrended tide gauge data from the Norfolk, VA tide gauge.
 
-plot(dat.datetime, dat.weather; ylabel="Gauge Weather Variability (m)", label="Detrended Data", linewidth=3, legend=:topleft, tickfontsize=14, guidefontsize=16, legendfontsize=14, xlabel="Date/Time", bottom_margin=5mm, left_margin=5mm, right_margin=5mm)
+plot(dat.datetime, dat.weather; ylabel="Gauge Weather Variability (m)", label="Detrended Data", linewidth=3, legend=:topleft,  xlabel="Date/Time", bottom_margin=5mm, left_margin=5mm, right_margin=5mm)
 ```
 
 ## Example: Block Maxima
@@ -173,26 +183,25 @@ plot(dat.datetime, dat.weather; ylabel="Gauge Weather Variability (m)", label="D
 #| label: fig-norfolk-data-maxima
 #| fig-cap: 2015 detrended tide gauge data from the Norfolk, VA tide gauge.
 
-p1 = plot(dat.datetime, dat.weather; ylabel="Gauge Weather Variability (m)", label="Detrended Data", linewidth=2, legend=:topleft, tickfontsize=14, guidefontsize=16, legendfontsize=14, xlabel="Date/Time", bottom_margin=5mm, left_margin=5mm, right_margin=5mm)
+pbm = plot(dat.datetime, dat.weather; ylabel="Gauge Weather Variability (m)", label="Detrended Data", linewidth=2, legend=:topleft, xlabel="Date/Time", bottom_margin=5mm, left_margin=5mm, right_margin=5mm)
 max_dat = combine(dat -> dat[argmax(dat.weather), :], groupby(transform(dat, :datetime => x->yearmonth.(x)), :datetime_function))
 scatter!(max_dat.datetime, max_dat.weather, label="Monthly Maxima", markersize=5)
 month_start = collect(Date(2015, 01, 01):Dates.Month(1):Date(2015, 12, 01))
 vline!(DateTime.(month_start), color=:black, label=:false, linestyle=:dash)
 
-p2 = histogram(
+p = histogram(
     max_dat.weather,
     normalize=:pdf,
     orientation=:horizontal,
     label=:false,
-    xlabel="PDF",
+    xlabel="Count",
+    bins=5,
     ylabel="",
-    yticks=[],
-    tickfontsize=16,
-    guidefontsize=18
+    yticks=[]
 )
 
 l = @layout [a{0.7w} b{0.3w}]
-plot(p1, p2; layout=l, link=:y, ylims=(-0.4, 1.4), bottom_margin=5mm, left_margin=5mm)
+plot(pbm, p; layout=l, link=:y, ylims=(-0.4, 1.4), bottom_margin=5mm, left_margin=5mm)
 plot!(size=(1000, 450))
 ```
 
@@ -208,7 +217,7 @@ plot!(size=(1000, 450))
 #| fig-cap: 2015 detrended tide gauge data from the Norfolk, VA tide gauge.
 
 thresh = 0.5
-p1 = plot(dat.datetime, dat.weather; linewidth=2, ylabel="Gauge Weather Variability (m)", label="Observations", legend=:top, tickfontsize=14, guidefontsize=16, legendfontsize=14, xlabel="Date/Time")
+ppot = plot(dat.datetime, dat.weather; linewidth=2, ylabel="Gauge Weather Variability (m)", label="Observations", legend=:top, xlabel="Date/Time")
 hline!([thresh], color=:red, linestyle=:dash, label="Threshold")
 scatter!(dat.datetime[dat.weather .> thresh], dat.weather[dat.weather .> thresh], markershape=:x, color=:black, markersize=3, label="Exceedances")
 
@@ -217,15 +226,13 @@ p2 = histogram(
     normalize=:pdf,
     orientation=:horizontal,
     label=:false,
-    xlabel="PDF",
+    xlabel="Count",
     ylabel="",
-    yticks=[],
-    tickfontsize=16,
-    guidefontsize=18
+    yticks=[]
 )
 
 l = @layout [a{0.7w} b{0.3w}]
-plot(p1, p2; layout=l, link=:y, ylims=(-0.4, 1.4), bottom_margin=5mm, left_margin=5mm)
+plot(ppot, p2; layout=l, link=:y, ylims=(-0.4, 1.4), bottom_margin=5mm, left_margin=5mm)
 plot!(size=(1000, 450))
 ```
 
@@ -239,19 +246,62 @@ $$\tilde{X}_i = \max_{(i-1)m < j \leq im} X_j,$$
 
 for $i = 1, 2, \ldots, k$?
 
-## Analogy: Central Limit Theorem
+## How Are Maxima Distributed?
 
-Recall that the **Central Limit Theorem** tells us:
+Consider the CDF $F_X$ of $X$ and let $Y_n = \max \{X_1, \ldots, X_n \}$.
 
-If we have independent and identically-distributed variables $$X_1, X_2, \ldots, X_n$$ from some population with mean $\mu$ and standard deviation $\sigma$, the sample mean $\bar{X}$ has the approximate distribution
+$$
+\begin{align*}
+F_{Y_n}(z) &= \mathbb{P}[Y_n \leq z] \\
+&= \mathbb{P}(X_1 \leq z, \ldots, X_n \leq z) \\
+&= \mathbb{P}(X_1 \leq z) \times \ldots \times \mathbb{P}(X_n \leq z) \\
+&= \mathbb{P}(X \leq z)^n = F_X^n(z)
+\end{align*}
+$$
 
-$$\bar{X} \sim \text{Normal}(\mu, \sigma/\sqrt{n}).$$
+This means that errors in estimating $F_X$ become exponentially worse for $F_{Y_n}$.
 
-## Extreme Value Theorem
 
-The **Extreme Value Theorem** is the equivalent for block maxima.
 
-If the limiting distribution exists, it can only by given as a **Generalized Extreme Value (GEV)** distribution:
+## Sum-Stable Distributions
+
+If we have independent and identically-distributed variables$$X_1, X_2, \ldots, X_n$.
+
+$$Y_1 = \sum_{i=1}^k X_i, \quad Y_2 = \sum_{i={k+1}}^{2k} X_i, \quad \ldots, \quad Y_m = \sum_{i={n-k+1}}^{n} X_i$$
+
+**Sum-Stability**: $Y \stackrel{d}{=} a_kX + b_k$ for some constants $a, b \geq 0$.
+
+**Example**: If $X \sim N(\mu, \sigma)$, $Y \sim N(k\mu, k\sigma)$ 
+
+## Max Stability
+
+$$\begin{align*}
+\max\{x_1, \ldots, &x_{2n}\}\\
+&= \max\{\max\{x_1, \ldots, x_n\}, \max\{x_{n+1}, \ldots, x_2n\} \}
+\end{align*}$$
+
+```{julia}
+#| output: true
+#| fig-align: center
+#| label: fig-norfolk-max-stability
+#| fig-cap: 2015 detrended tide gauge data from the Norfolk, VA tide gauge.
+
+plot!(pbm, xlims=Dates.value.([DateTime("2015-01-01"), DateTime("2015-03-01")]), size=(1000, 425))
+```
+
+## Stability Postulate
+
+By analogy with sum stability, postulate that for a **max-stable process**,
+
+$$F^n(z) = F(a_n z + b_n)$$ 
+
+for some constants $a_n, b_n \geq 0$.
+
+## Extremal Types Theorem
+
+Let $X_1, \ldots, X_n$ be a sample of i.i.d. random variables.
+
+**If** a limiting distribution for $Y = \max\{X_1, \ldots, X_n\}$ exists, it can only by given as a **Generalized Extreme Value (GEV)** distribution:
 
 $$H(y) = \exp\left\{-\left[1 + \xi\left(\frac{y-\mu}{\sigma}\right)\right]^{-1/\xi}\right\},$$
 defined for $y$ such that $1 + \xi(y-\mu)/\sigma > 0$.
@@ -282,9 +332,9 @@ GEV distributions have three parameters:
 #| fig-align: center
 #| fig-cap: Shape of the GEV distribution with different choices of $\xi$.
 
-p1 = plot(-2:0.1:6, GeneralizedExtremeValue(0, 1, 0.5), linewidth=3, color=:red, label=L"$\xi = 1/2$", guidefontsize=18, legendfontsize=16, tickfontsize=16)
-plot!(-4:0.1:6, GeneralizedExtremeValue(0, 1, 0), linewidth=3, color=:green, label=L"$\xi = 0$")
-plot!(-4:0.1:2, GeneralizedExtremeValue(0, 1, -0.5), linewidth=3, color=:blue, label=L"$\xi = -1/2$")
+p1 = plot(-2:0.1:6, GeneralizedExtremeValue(0, 1, 0.5), linewidth=3, color=:red, label=L"$\xi = 1/2$", lw=3)
+plot!(-4:0.1:6, GeneralizedExtremeValue(0, 1, 0), linewidth=3, color=:green, label=L"$\xi = 0$", lw=3)
+plot!(-4:0.1:2, GeneralizedExtremeValue(0, 1, -0.5), linewidth=3, color=:blue, label=L"$\xi = -1/2$", lw=3)
 scatter!((-2, 0), color=:red, label=:false)
 scatter!((2, 0), color=:blue, label=:false)
 ylabel!("Density")
@@ -300,13 +350,22 @@ plot!(size=(600, 450))
 - $\xi > 0$: tails are *heavy*, and there is no expectation if $\xi > 1$. Common for streamflow, storm surge, precipitation.
 - The Gumbel distribution ($\xi = 0$) is common for extremes from normal distributions, doesn't occur often in real-world data.
 
-##  Return Periods and Levels
+##  Return Levels
 
-The **return period** of an extreme value is the inverse of the exceedance probability, *e.g.* a value with an annual exceedance probability of 1% (0.99 quantile) has a 100-year return period ("100-year storm").
+**Return Levels** are a central (if poorly named) concept in risk analysis.
 
-**Return levels** are the value corresponding to a return period. 
+The **$T$-year return level** is the value expected to be observed **on average** once every $T$ years.
 
-From a GEV: $m$-year return level is the $1-1/m$ quantile.
+From a GEV fit to annual maxima: $T$-year return level is the $1-1/T$ quantile.
+
+
+## Return Periods
+
+The **return period** of an extreme value is the inverse of the exceedance probability.
+
+**Example**: The 100-year return period has an exceedance probability of 1%, *e.g.* the 0.99 quantile.
+
+Return levels are associated with the analogous return period.
 
 ## San Francisco Tide Gauge Data
 
@@ -336,13 +395,13 @@ function load_data(fname)
     return df
 end
 
-dat = load_data("data/surge/h551.csv")
+d_sf = load_data("data/surge/h551.csv")
 
 # detrend the data to remove the effects of sea-level rise and seasonal dynamics
 ma_length = 366
 ma_offset = Int(floor(ma_length/2))
 moving_average(series,n) = [mean(@view series[i-n:i+n]) for i in n+1:length(series)-n]
-dat_ma = DataFrame(datetime=dat.datetime[ma_offset+1:end-ma_offset], residual=dat.gauge[ma_offset+1:end-ma_offset] .- moving_average(dat.gauge, ma_offset))
+dat_ma = DataFrame(datetime=d_sf.datetime[ma_offset+1:end-ma_offset], residual=d_sf.gauge[ma_offset+1:end-ma_offset] .- moving_average(d_sf.gauge, ma_offset))
 
 # group data by year and compute the annual maxima
 dat_ma = dropmissing(dat_ma) # drop missing data
@@ -360,28 +419,100 @@ p1 = plot(
     ylabel="Annual Max Tide Level (m)",
     label=false,
     marker=:circle,
-    markersize=5,
-    tickfontsize=16,
-    guidefontsize=18
+    markersize=5
 )
 p2 = histogram(
     dat_annmax.residual,
     normalize=:pdf,
     orientation=:horizontal,
     label=:false,
-    xlabel="PDF",
+    xlabel="Count",
     ylabel="",
-    yticks=[],
-    tickfontsize=16,
-    guidefontsize=18
+    yticks=[]
 )
 
 l = @layout [a{0.7w} b{0.3w}]
 plot(p1, p2; layout=l, link=:y, ylims=(1, 1.7), bottom_margin=5mm, left_margin=5mm)
 plot!(size=(1000, 450))
+
+# find GEV fit
+# for most distributions we could use Distributions.fit(), but this isn't implemented in Distributions.jl for GEV
+init_θ = [1.0, 1.0, 1.0]
+gev_lik(θ) = -sum(logpdf(GeneralizedExtremeValue(θ[1], θ[2], θ[3]), dat_annmax.residual))
+θ_mle = Optim.optimize(gev_lik, init_θ).minimizer
+
 ```
 
-## Block Maxima Fit
+## GEV Parameters
+
+:::: {.columns}
+::: {.column width=30%}
+
+* $\mu =  `{julia} round(θ_mle[1]; digits=2)`$
+* $\sigma = `{julia} round(θ_mle[2]; digits=2)`$
+* $\xi =  `{julia} round(θ_mle[3]; digits=2)`$
+
+:::
+::: {.column width=70%}
+```{julia}
+#| label: fig-gev-tide-show
+#| output: true
+#| echo: true
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: GEV fit to annual maxima of San Francisco Tide Gauge Data
+
+p = histogram(
+    dat_annmax.residual,
+    normalize=:pdf,
+    label="Data",
+    xlabel="Annual Maximum (m)",
+    ylabel="PDF",
+    yticks=[],
+    left_margin=10mm,
+    right_margin=10mm
+)
+
+plot!(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), linewidth=5, label="GEV Fit", color=:gold4)
+xlims!((1, 1.75))
+plot!(size=(800, 500))
+```
+
+:::
+::::
+
+## GEV Return Levels
+
+:::: {.columns}
+::: {.column width=30%}
+
+**100-year return level**: `{julia} round(quantile(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), 0.99), digits=2)`m
+
+:::
+::: {.column width=70%}
+
+```{julia}
+#| label: fig-gev-tide-cdf
+#| output: true
+#| echo: true
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: GEV fit to annual maxima of San Francisco Tide Gauge Data
+
+gevcdf(x) = cdf(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), x) # find quantiles of values
+rl_100 = quantile(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), 0.99)
+
+plot(1:0.01:1.75, 1 .- gevcdf.(1:0.01:1.75), yaxis=:log, yticks=10 .^ collect(-3.0:1.0:0.0), xlabel="Water Level (m)", ylabel="Exceedance Probability (1/yr)", lw=3)
+plot!(1:0.01:rl_100, 0.01 .+ zeros(length(1:0.01:rl_100)), color=:red, lw=2)
+plot!(rl_100 .+ zeros(length(-4:0.01:-2)), 10 .^collect(-4.0:0.01:-2.0), color=:red, lw=2)
+scatter!([rl_100], [0.01], color=:red, markersize=5)
+plot!(size=(800, 500))
+
+```
+:::
+::::
+
+## GEV vs LogNormal
 
 ```{julia}
 #| label: fig-gev-tide-fit
@@ -391,12 +522,6 @@ plot!(size=(1000, 450))
 #| fig-align: center
 #| fig-cap: GEV fit to annual maxima of San Francisco Tide Gauge Data
 
-# find GEV fit
-# for most distributions we could use Distributions.fit(), but this isn't implemented in Distributions.jl for GEV
-init_θ = [1.0, 1.0, 1.0]
-gev_lik(θ) = -sum(logpdf(GeneralizedExtremeValue(θ[1], θ[2], θ[3]), dat_annmax.residual))
-θ_mle = Optim.optimize(gev_lik, init_θ).minimizer
-
 p = histogram(
     dat_annmax.residual,
     normalize=:pdf,
@@ -404,15 +529,11 @@ p = histogram(
     xlabel="Annual Maximum (m)",
     ylabel="PDF",
     yticks=[],
-    tickfontsize=16,
-    guidefontsize=18,
-    legendfontsize=16,
-    left_margin=10mm, 
-    right_margin=10mm,
-    bottom_margin=5mm
+    left_margin=10mm,
+    right_margin=10mm
 )
-plot!(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), linewidth=3, label="GEV Fit")
-plot!(fit(LogNormal, dat_annmax.residual), linewidth=3, label="LogNormal Fit", color=:black)
+plot!(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), linewidth=5, label="GEV Fit", color=:gold4)
+plot!(fit(LogNormal, dat_annmax.residual), linewidth=5, label="LogNormal Fit", color=:darkred)
 xlims!((1, 1.75))
 ```
 
@@ -430,10 +551,7 @@ xlims!((1, 1.75))
 p1 = qqplot(GeneralizedExtremeValue(θ_mle[1], θ_mle[2], θ_mle[3]), dat_annmax.residual, 
     linewidth=3, markersize=5,
     xlabel="Theoretical Quantile",
-    ylabel="Empirical Quantile",
-    tickfontsize=16,
-    guidefontsize=18,
-    legendfontsize=16
+    ylabel="Empirical Quantile"
 )
 plot!(p1, size=(600, 450))
 
@@ -454,9 +572,9 @@ function exceedance_plot_pos(y)
 end
 xp, ys = exceedance_plot_pos(dat_annmax.residual)
 
-p2 = plot(return_periods, return_levels, linewidth=3, color=:blue, label="GEV Model Fit", tickfontsize=16, legendfontsize=18, guidefontsize=18, bottom_margin=5mm, left_margin=5mm, right_margin=10mm, legend=:bottomright)
-plot!(p2, return_periods, return_levels_lognormal, linewidth=3, color=:orange, label="LogNormal Model Fit")
-scatter!(p2, 1 ./ xp, ys, label="Observations", color=:black, markersize=5)
+p2 = plot(return_periods, return_levels, linewidth=5, color=:gold4, label="GEV Model Fit", bottom_margin=5mm, left_margin=5mm, right_margin=10mm, legend=:bottomright)
+plot!(p2, return_periods, return_levels_lognormal, linewidth=5, color=:darkred, label="LogNormal Model Fit")
+scatter!(p2, 1 ./ xp, ys, label="Observations", color=:black, markersize=6)
 xlabel!(p2, "Return Period (yrs)")
 ylabel!(p2, "Return Level (m)")
 xlims!(-1, 300)
@@ -469,298 +587,69 @@ display(p2)
 
 ## Be Careful About The Shape Parameter!
 
+:::: {.columns}
+::: {.column width=40%}
+- $\xi$ can be difficult to constrain;
+- Often lots of uncertainty (large standard errors);
+- Controls frequency of "extreme" extremes
+:::
+::: {.column width=60%}
 ::: {.center}
-![House flood risk sensitivity](figures/zarekarizi-sensitivity.png){width=50%}
+![House flood risk sensitivity](figures/zarekarizi-sensitivity.png){width=80%}
 :::
 ::: {.caption}
 Source: @Zarekarizi2020-ky
 :::
-
-# Peaks Over Thresholds
-
-## Drawbacks of Block Maxima
-
-The block-maxima approach has two potential drawbacks:
-
-1. Uses a limited amount of data;
-2. Doesn't capture the potential for multiple exceedances within a block.
-
-## Peaks Over Thresholds
-
-Consider the **conditional excess distribution function**
-
-$$F_u(y) = \mathbb{P}(X > u + y \ |\  X > u),$$
-
-which is the cumulative distribution of values by which $X$ exceeds $u$ (given that the exceedance has occurred).
-
-## Generalized Pareto Distribution (GPD)
-
-For a large number of underlying distributions of $X$, $F_u(y)$ is well-approximated by a **Generalized Pareto Distribution (GPD)**:
-
-$$F\_u(y) \to G(y) = 1 - \left[1 + \xi\left(\frac{y-\mu}{\sigma}\right)^{-1/\xi}\right],$$
-defined for $y$ such that $1 + \xi(y-\mu)/\sigma > 0$.
-
-## Generalized Pareto Distribution (GPD)
-
-Similarly to the GEV distribution, the GPD distribution has three parameters:
-
-- location $\mu$;
-- scale $\sigma > 0$;
-- shape $\xi$.
-
-## GPD Types
-
-:::: {.columns}
-::: {.column width=40%}
-- $\xi > 0$: *heavy-tailed*
-- $\xi = 0$: *light-tailed*
-- $\xi < 0$: *bounded*
-:::
-::: {.column width=60%}
-
-```{julia}
-#| label: fig-gpd-shape
-#| output: true
-#| echo: true
-#| code-fold: true
-#| fig-align: center
-#| fig-cap: Shape of the GPD distribution with different choices of $\xi$.
-
-p1 = plot(-2:0.1:6, GeneralizedPareto(0, 1, 0.5), linewidth=3, color=:red, label=L"$\xi = 1/2$", guidefontsize=18, legendfontsize=16, tickfontsize=16, left_margin=5mm, bottom_margin=10mm)
-plot!(-4:0.1:6, GeneralizedPareto(0, 1, 0), linewidth=3, color=:green, label=L"$\xi = 0$")
-plot!(-4:0.1:2, GeneralizedPareto(0, 1, -0.5), linewidth=3, color=:blue, label=L"$\xi = -1/2$")
-scatter!((-2, 0), color=:red, label=:false)
-scatter!((2, 0), color=:blue, label=:false)
-ylabel!("Density")
-xlabel!(L"$x$")
-plot!(size=(600, 450))
-```
 :::
 ::::
 
-## Exceedances Can Occur In Clusters
+## Choosing a Block Size
 
-```{julia}
-#| label: fig-tide-pot
-#| output: true
-#| echo: true
-#| code-fold: true
-#| fig-align: center
-#| fig-cap: Peaks Over Thresholds for the SF Tide Gauge Data
+- Similar to the "bias-variance tradeoff"
+- Small block sizes: poor approximation by GEV, resulting in greater bias
+- Large block sizes: fewer data points, greater estimation variance
+- One year is common for practical reasons, but can go finer with sufficient data so long as block maxima can be treated as independent.
 
-thresh = 1.0
-dat_ma_plot = @subset(dat_ma, year.(:datetime) .> 2020)
-dat_ma_plot.residual = dat_ma_plot.residual ./ 1000
-p1 = plot(dat_ma_plot.datetime, dat_ma_plot.residual; linewidth=2, ylabel="Gauge Weather Variability (m)", label="Observations", legend=:bottom, tickfontsize=16, guidefontsize=18, legendfontsize=16, xlabel="Date/Time", right_margin=10mm, left_margin=5mm, bottom_margin=5mm)
-hline!([thresh], color=:red, linestyle=:dash, label="Threshold")
-scatter!(dat_ma_plot.datetime[dat_ma_plot.residual .> thresh], dat_ma_plot.residual[dat_ma_plot.residual .> thresh], markershape=:x, color=:black, markersize=3, label="Exceedances")
-```
+## Getting Standard Errors
 
-## Declustering
+- Fisher information: find Hessian of log-likelihood of GEV at MLE.
+- Parametric bootstrap from fitted GEV (will tend towards more narrow intervals)
+- **Do not use the non-parametric bootstrap**
 
-@Arns2013-tl note: there is no clear declustering time period to use: need to rely on physical understanding of events and "typical" durations.
+# Nonstationary Block Maxima
 
-If we have prior knowledge about the duration of physical processes leading to clustered extremes (*e.g.* storm durations), can use this. Otherwise, need some way to estimate cluster duration from the data.
+## Nonstationary GEVs
 
-## Extremal Index
+Suppose block maxima can change with the block (*e.g.* climate change).
 
-The most common is the **extremal index** $\theta(u)$, which measures the inter-exceedance time for a given threshold $u$.
+$$Y_i \sim GEV(\mu(x_i), \sigma(x_i), \xi(x_i))$$
 
-$$0 \leq \theta(u) \leq 1,$$
+Common to use generalized linear framework, *e.g.*
 
-where $\theta(u) = 1$ means independence and $\theta(u) = 0$ means the entire dataset is one cluster.
+$$Y_i \sim GEV(\mu_0 + \mu_1 x_i, \sigma_0 + \sigma_1 x_i, \xi_0 + \xi_1 x_i)$$
 
-## Extremal Index
+## Be Careful with Nonstationary GEVs
 
-$\theta(u)$ has two meanings:
+- GEV parameters are already subject to large uncertainties; nonstationarity makes this worse.
+- **Be particularly careful with non-stationary $\xi$ (shape).**
+- Most common approach: only treat $\mu$ as non-stationary, $$Y_i \sim GEV(\mu_0 + \mu_1 x_i, \sigma, \xi)$$
 
-1.  The "propensity to cluster": $\theta$ is the probability that the process has left one exceedance cluster;
-2.  The "reciprocal of the clustering duration": $1/\theta$ is the mean time between clusters.
+## Nonstationary Return Levels
 
+No non-conditional return periods since distribution depends on $x$.
 
-## Computing the Extremal Index
+First specify a covariate value $x$, then can calculate return levels based on that value.
 
-This estimator is taken from @Ferro2003-jm.
-
-Let $N = \sum_{i=1}^n \mathbb{I}(X_i > u)$ be the total number of exceedances.
-
-Denote by $1 \leq S_1 < \ldots < S_N \leq n$ the exceedance times.
-
-Then the inter-exceedance times are $$T_i = S_{i+1} - S_i, \quad 1 \leq i \leq N-1.$$
-
-## Computing the Extremal Index
-
-$$\hat{\theta}(u) = \frac{2\left(\sum_{i-1}^{N-1} T_i\right)^2}{(N-1)\sum_{i=1}^{N-1}T_i^2}$$
-
-```{julia}
-#| echo: true
-#| output: true
-#| code-fold: true
-
-# find total number of exceedances and exceedance times
-dat_ma.residual = dat_ma.residual ./ 1000 # convert to m
-S = findall(dat_ma.residual .> thresh)
-N = length(S)
-T = diff(S) # get difference between adjacent exceedances
-θ = 2 * sum(T)^2 / ((N-1) * sum(T.^2)) # extremal index
-```
+For example: what are 100-year return levels of temperatures in 2020, 2050, and 2100?
 
 
-For the SF tide gauge data and $u=1.0 \text{m}$, we get the declustering time is `{julia} round(1 / θ, digits=0)` hours. 
-
-## Mapping Data To Clusters
-
-```{julia}
-#| echo: true
-#| output: false
-#| label: pot-exceedances-decluster
-
-# cluster data points which occur within period
-function assign_cluster(dat, period)
-    cluster_index = 1
-    clusters = zeros(Int, length(dat))
-    for i in 1:length(dat)
-        if clusters[i] == 0
-            clusters[findall(abs.(dat .- dat[i]) .<= period)] .= cluster_index
-            cluster_index += 1
-        end
-    end
-    return clusters
-end
-
-# cluster exceedances that occur within a four-hour window
-# @transform is a macro from DataFramesMeta.jl which adds a new column based on a data transformation
-dat_exceed = dat_ma[dat_ma.residual .> thresh, :]
-dat_exceed = @transform dat_exceed :cluster = assign_cluster(:datetime, Dates.Hour(4))
-# find maximum value within cluster
-dat_decluster = combine(dat_exceed -> dat_exceed[argmax(dat_exceed.residual), :], 
-    groupby(dat_exceed, :cluster))
-dat_decluster
-```
-
-## Declustered Distribution
-
-```{julia}
-#| echo: true
-#| code-fold: true
-#| label: fig-pot-exceedances
-#| fig-align: center
-#| fig-cap: Histogram of clustered exceedances for SF tide gauge data.
-
-p = histogram(dat_decluster.residual .- thresh,
-    normalize = :pdf,
-    label="Data",
-    xlabel="Threshold Exceedance (m)",
-    ylabel="PDF",
-    yticks=[],
-    tickfontsize=16,
-    guidefontsize=18,
-    legendfontsize=16,
-    left_margin=10mm, 
-    right_margin=10mm,
-    bottom_margin=5mm
-    )
-
-```
-
-## GPD Fit
-
-```{julia}
-#| label: fig-gpd-tide-fit
-#| output: true
-#| echo: true
-#| code-fold: true
-#| fig-align: center
-#| layout-ncol: 2
-#| fig-cap: GPD fit to tide gauge readings over 1m of San Francisco Tide Gauge Data
-
-# fit GPD
-init_θ = [1.0, 1.0]
-low_bds = [0.0, -Inf]
-up_bds = [Inf, Inf]
-gpd_lik(θ) = -sum(logpdf(GeneralizedPareto(0.0, θ[1], θ[2]), dat_decluster.residual .- thresh))
-θ_mle = Optim.optimize(gpd_lik, low_bds, up_bds, init_θ).minimizer
-p1 = plot!(p, GeneralizedPareto(0.0, θ_mle[1], θ_mle[2]), linewidth=3, label="GPD Fit")
-plot!(size=(600, 450))
-
-# Q-Q Plot
-p2 = qqplot(GeneralizedPareto(0.0, θ_mle[1], θ_mle[2]), dat_decluster.residual .- thresh, 
-    xlabel="Theoretical Quantile",
-    ylabel="Empirical Quantile",
-    linewidth=3,
-    tickfontsize=16,
-    guidefontsize=18,
-    legendfontsize=16,
-    left_margin=5mm, 
-    right_margin=10mm,
-    bottom_margin=5mm)
-plot!(size=(600, 450))
-
-display(p1)
-display(p2)
-```
-
-## But What About Exceedance Frequency?
-
-:::: {.columns}
-::: {.column width=50%}
-The GPD fit gives a distribution for how extreme threshold exceedances are when they occur.
-
-But how often do they occur?
-:::
-
-::: {.column width=50%}
-```{julia}
-#| echo: true
-#| code-fold: true
-#| label: fig-tide-exceedance-count
-#| fig-align: center
-#| fig-cap: histogram of number of exceedances in each year
-
-# add column with years of occurrence
-dat_decluster = @transform dat_decluster :year = Dates.year.(dat_decluster.datetime)
-# group by year and add up occurrences
-exceed_counts = combine(groupby(dat_decluster, :year), nrow => :count)
-delete!(exceed_counts, nrow(exceed_counts)) # including 2023 will bias the count estimate
-p = histogram(exceed_counts.count, legend=:false, 
-    xlabel="Yearly Exceedances",
-    ylabel="Count",
-    guidefontsize=18,
-    tickfontsize=16,
-    left_margin=5mm,
-    bottom_margin=10mm
-)
-plot!(size=(600, 400))
-```
-:::
-::::
-
-## Poisson - Generalized Pareto Process
-
-Model the number of new exceedances with a Poisson distribution
-
-$$n \sim \text{Poisson}(\lambda_u),$$
-
-The MLE for $\lambda_u$ is the mean of the count data, in this case `{julia} round(mean(exceed_counts.count), digits=1)`.
-
-Then, for each $i=1, \ldots, n$, sample
-$$X_i \sim \text{GeneralizedPareto}(u, \sigma, \xi).$$
-
-## Poisson - Generalized Pareto Process Return Levels
-
-Then the return level for return period $m$ years can be obtained by solving the quantile equation (see @Coles2001-sg for details):
-
-$$\text{RL}_m = \begin{cases}u + \frac{\sigma}{\xi} \left((m\lambda_u)^\xi - 1\right) & \text{if}\  \xi \neq 0 \\ u + \sigma \log(m\lambda_u) & \text{if}\  \xi = 0.\end{cases}$$
-
-## For More on Extremes...
-
-@Coles2001-sg is the gold standard textbook.
+# Upcoming Schedule
 
 ## Upcoming Schedule
 
-**Monday**: Nonstationary Extremes
+**Monday**: Peaks Over Thresholds
 
-**Wednesday**: Mixture Models
+**Wednesday**: Missing and Censored Data
 
 ## Assessments
 
