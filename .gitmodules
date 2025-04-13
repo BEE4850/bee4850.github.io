@@ -10,3 +10,6 @@
 [submodule "hw/hw04"]
 	path = hw/hw04
 	url = https://github.com/BEE4850/hw04
+[submodule "hw/hw05"]
+	path = hw/hw05
+	url = https://github.com/BEE4850/hw05

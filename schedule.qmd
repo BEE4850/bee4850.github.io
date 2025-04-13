@@ -24,20 +24,20 @@ Readings can be accessed using the link (when needed, through the Cornell librar
 |   | 2/19 | Bayesian Statistics |  [{{< fa sharp presentation-screen >}}](slides/lecture05-1-bayes.qmd) | | Gelman & Shalizi ([2013](https://bpspsychub-onlinelibrary-wiley-com.proxy.library.cornell.edu/doi/10.1111/j.2044-8317.2011.02037.x))|
 | [6](weeks/week06.qmd) | 2/24 | Bayesian Workflow | [{{< fa sharp presentation-screen >}}](slides/lecture06-1-bayes-workflow.qmd) | | |
 |   | 2/26 | Random Variate Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture06-2-random-simulation.qmd) | | |
-| [7](weeks/week07.qmd) | 3/3  | Monte Carlo Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture07-1-monte-carlo.qmd) | Bankes ([1993](https://pubsonline-informs-org.proxy.library.cornell.edu/doi/10.1287/opre.41.3.435)) | [{{< fa sharp pen-field >}}](hw/hw02/hw02.qmd) |
+| [7](weeks/week07.qmd) | 3/3  | Monte Carlo Simulation | [{{< fa sharp presentation-screen >}}](slides/lecture07-1-monte-carlo.qmd) | Bankes ([1993](https://pubsonline-informs-org.proxy.library.cornell.edu/doi/10.1287/opre.41.3.435)) | [{{< fa sharp pen-field >}}](hw/hw03/hw03.qmd) |
 |   | 3/5  | The Bootstrap  | [{{< fa sharp presentation-screen >}}](slides/lecture07-2-bootstrap.qmd) | | |
 | [8](weeks/week08.qmd) | 3/10 | The Parametric Bootstrap | [{{< fa sharp presentation-screen >}}](slides/lecture08-1-parametric-bootstrap.qmd) | Ruckert et al ([2017](https://link.springer.com/article/10.1007/s10584-016-1858-z)) | |
 |   | 3/12 | Bayesian Computing and Markov Chains | [{{< fa sharp presentation-screen >}}](slides/lecture08-2-bayesian-computation.qmd) | | |
 | [9](weeks/week09.qmd) | 3/17 | Markov Chain Monte Carlo | [{{< fa sharp presentation-screen >}}](slides/lecture09-1-mcmc.qmd) | Clark et al ([2021](https://agupubs-onlinelibrary-wiley-com.proxy.library.cornell.edu/doi/10.1029/2020WR029001)) | |
 |   | 3/19 | Predictive Model Assessments | [{{< fa sharp presentation-screen >}}](slides/lecture09-2-model-skill.qmd)  |  | |
-| [10](weeks/week10.qmd) | 3/24 | Scoring and Cross-Validation | [{{< fa sharp presentation-screen >}}](slides/lecture10-1-cross-validation.qmd) | | | |
+| [10](weeks/week10.qmd) | 3/24 | Scoring and Cross-Validation | [{{< fa sharp presentation-screen >}}](slides/lecture10-1-cross-validation.qmd) | | | [{{< fa sharp pen-field >}}](hw/hw04/hw04.qmd) |
 |    | 3/26 | Information and Entropy |  [{{< fa sharp presentation-screen >}}](slides/lecture10-2-information-models.qmd) | | | 
 |    | 3/31 | ***Spring Break*** | 
 |    | 4/2  | ***Spring Break*** |
 | [11](weeks/week11.qmd) | 4/7  | Information Criteria  | [{{< fa sharp presentation-screen >}}](slides/lecture11-1-information-criteria.qmd)| | |
 |    | 4/9 | Modeling Extreme Values | [{{< fa sharp presentation-screen >}}](slides/lecture11-2-modeling-extremes.qmd) | | |
-| 12 | 4/14 |  | | | |
-|    | 4/16 | | | | |
+| [12](weeks/week12.qmd) | 4/14 | Peaks Over Thresholds | [{{< fa sharp presentation-screen >}}](slides/lecture12-1-peaks-thresholds.qmd) | | [{{< fa sharp pen-field >}}](hw/hw05/hw05.qmd) |
+|    | 4/16 | Missing Data | | | |
 | 13 | 4/21 | | | | |
 |    | 4/23 | **No Class** | | | |
 | 14 | 4/28 | **Project Presentations** | | | |

@@ -1,10 +1,10 @@
 ---
-title: "Information Criteria"
-subtitle: "Lecture 18"
+title: "Peaks Over Thresholds"
+subtitle: "Lecture 20"
 author: "Vivek Srikrishnan"
 course: "BEE 4850"
 institution: "Cornell University"
-date: "March 31, 2025"
+date: "April 14, 2025"
 format:
     revealjs:
         slide-number: c/t
@@ -83,6 +83,59 @@ default(
 
 ```
 
+# Review
+
+## Extreme Values
+
+**Values with a very low probability of occurring**, not necessarily high-impact events (which don't have to be rare!).
+
+1. "Block" extremes, *e.g.* annual maxima (**block maxima**)
+2. Values which exceed a certain threshold (**peaks over threshold**)
+
+## Generalized Extreme Values
+
+:::: {.columns}
+::: {.column width=40%}
+Block maxima $Y_n = \max \{X_1, \ldots, X_n \}$ are modeled using **Generalized Extreme Value** distributions: $GEV(\mu, \sigma, \xi)$.
+:::
+::: {.column width=60%}
+
+```{julia}
+#| label: fig-gev-shape
+#| output: true
+#| echo: true
+#| code-fold: true
+#| fig-align: center
+#| fig-cap: Shape of the GEV distribution with different choices of $\xi$.
+
+p1 = plot(-2:0.1:6, GeneralizedExtremeValue(0, 1, 0.5), linewidth=3, color=:red, label=L"$\xi = 1/2$", lw=3)
+plot!(-4:0.1:6, GeneralizedExtremeValue(0, 1, 0), linewidth=3, color=:green, label=L"$\xi = 0$", lw=3)
+plot!(-4:0.1:2, GeneralizedExtremeValue(0, 1, -0.5), linewidth=3, color=:blue, label=L"$\xi = -1/2$", lw=3)
+scatter!((-2, 0), color=:red, label=:false)
+scatter!((2, 0), color=:blue, label=:false)
+ylabel!("Density")
+xlabel!(L"$x$")
+plot!(size=(600, 450))
+```
+:::
+::::
+
+##  Return Levels
+
+**Return Levels** are a central (if poorly named) concept in risk analysis.
+
+The **$T$-year return level** is the value expected to be observed **on average** once every $T$ years.
+
+From a GEV fit to annual maxima: $T$-year return level is the $1-1/T$ quantile.
+
+## Return Periods
+
+The **return period** of an extreme value is the inverse of the exceedance probability.
+
+**Example**: The 100-year return period has an exceedance probability of 1%, *e.g.* the 0.99 quantile.
+
+Return levels are associated with the analogous return period.
+
 # Peaks Over Thresholds
 
 ## Drawbacks of Block Maxima
@@ -90,13 +143,13 @@ default(
 The block-maxima approach has two potential drawbacks:
 
 1. Uses a limited amount of data;
-2. Doesn't capture the potential for multiple exceedances within a block.
+2. Doesn't capture the potential for multiple extremes within a block.
 
 ## Peaks Over Thresholds
 
 Consider the **conditional excess distribution function**
 
-$$F_u(y) = \mathbb{P}(X > u + y \ |\  X > u)$$
+$$F_u(y) = \mathbb{P}(X - u > y  |  X > u)$$
 
 :::: {.columns}
 ::: {.column width=50%}
@@ -430,17 +483,85 @@ $$\text{RL}_m = \begin{cases}u + \frac{\sigma}{\xi} \left((m\lambda_u)^\xi - 1\r
 
 ## Poisson-GPP Example
 
+:::: {.columns}
+::: {.column width=50%}
 Question: What is the 100-year return period of the SF data?
+:::
+::: {.column width=50%}
+```{julia}
+#| echo: true
+#| code-fold: true
+#| label: fig-tide-exceedance-poisson
+#| fig-align: center
+#| fig-cap: Histogram of number of exceedances in each year with Poisson fit
+
+count_dist = fit(Poisson, exceed_counts.count)
+λ = params(count_dist)[1]
+
+p = histogram(exceed_counts.count, legend=:false, 
+    xlabel="Yearly Exceedances",
+    ylabel="Count",
+    normalize=:pdf,
+    left_margin=5mm,
+    bottom_margin=10mm
+)
+plot!(size=(600, 500))
+plot!(p, count_dist)
+```
+:::
+::::
+
+## Poisson-GPP Example
+
+:::: {.columns}
+::: {.column width=40%}
+Poisson: $\lambda = `{julia} round(λ; digits=0)`$
+
+GPD parameters:
+
+- $\mu = 0$ (fixed)
+- $\sigma = `{julia} round(θ_mle[1]; digits=2)`$
+- $\xi = `{julia} round(θ_mle[2]; digits=2)`$
+
+:::
+::: {.column width=60%}
+$$
+\begin{align*}
+\text{RL}_{\text{100}} &= 1 + \frac{\sigma}{\xi} \left((m\lambda)^\xi - 1\right) \\
+&= 1 - \frac{0.11}{0.17}\left((100 * 50)^{-0.17} - 1\right) \\
+&\approx 1.5 \text{m}
+\end{align*}
+$$
+:::
+::::
+
+## Nonstationary POT
+
+Non-stationarity could influence either the Poisson (how many exceedances occur each year) or GPD (when exceedances occur how are they distributed)?
+
+Often simplest to use a Poisson GLM:
+
+$$\lambda_t = \text{Poisson}(\lambda_0 + \lambda_1 x_t)$$
+
+and let the GPD be stationary.
+
+## Nonstationary Return Levels
+
+Then the $m$-year return level associated with covariate $x_t$ becomes
+
+$$\text{RL}_m = \begin{cases}u + \frac{\sigma}{\xi} \left((m(\lambda_0 + \lambda_1 x_t))^\xi - 1\right) & \text{if}\  \xi \neq 0 \\ u + \sigma \log(m(\lambda_0 + \lambda_1 x_t)) & \text{if}\  \xi = 0.\end{cases}$$
 
 
 ## Upcoming Schedule
 
-**Monday**: Nonstationary Extremes
+**Wednesday**: Missing Data and E-M Algorithm
 
-**Wednesday**: Mixture Models
+**Monday**: Mixture Models and Model-Based Clustering (maybe)
+
+**Next Wednesday (4/23)**: No Class
 
 ## Assessments
 
-**Friday**: HW4 Due
+**HW5** released, due 5/2.
 
 ## References 

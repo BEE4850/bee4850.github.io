@@ -25,5 +25,5 @@ The standard rubric for homework problems is available [here](rubrics/standard.q
 | HW1 | [{{< fa sharp pen-field >}}](hw/hw01/hw01.qmd) | Feb 07, 2025 | [{{< fa sharp key-skeleton >}}](solutions/hw/hw01/hw01.qmd) |
 | HW2 | [{{< fa sharp pen-field >}}](hw/hw02/hw02.qmd) | Feb 21, 2025 | [{{< fa sharp key-skeleton >}}](solutions/hw/hw02/hw02.qmd) |
 | HW3 | [{{< fa sharp pen-field >}}](hw/hw03/hw03.qmd) | Mar 14, 2025 | [{{< fa sharp key-skeleton >}}](solutions/hw/hw03/hw03.qmd) |
-| HW4 | [{{< fa sharp pen-field >}}](hw/hw04/hw04.qmd) | Apr 11, 2025 | [{{< fa sharp key-skeleton >}}]{style="color:grey"} |
-| HW5 | [{{< fa sharp pen-field >}}]{style="color:grey"} | May 2, 2025 | [{{< fa sharp key-skeleton >}}]{style="color:grey"} |
+| HW4 | [{{< fa sharp pen-field >}}](hw/hw04/hw04.qmd) | Apr 11, 2025 | [{{< fa sharp key-skeleton >}}](solutions/hw/hw04/hw04.qmd) |
+| HW5 | [{{< fa sharp pen-field >}}](hw/hw05/hw05.qmd) | May 2, 2025 | [{{< fa sharp key-skeleton >}}]{style="color:grey"} |
