@@ -138,4 +138,5 @@ bibliography: references.bib
 csl: _assets/references/american-geophysical-union.csl
 execute:
   freeze: auto
-
+resources:
+  - CNAME
