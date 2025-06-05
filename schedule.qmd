@@ -37,8 +37,8 @@ Readings can be accessed using the link (when needed, through the Cornell librar
 | [11](weeks/week11.qmd) | 4/7  | Information Criteria  | [{{< fa sharp presentation-screen >}}](slides/lecture11-1-information-criteria.qmd)| | |
 |    | 4/9 | Modeling Extreme Values | [{{< fa sharp presentation-screen >}}](slides/lecture11-2-modeling-extremes.qmd) | | |
 | [12](weeks/week12.qmd) | 4/14 | Peaks Over Thresholds | [{{< fa sharp presentation-screen >}}](slides/lecture12-1-peaks-thresholds.qmd) | | [{{< fa sharp pen-field >}}](hw/hw05/hw05.qmd) |
-|    | 4/16 | Missing Data | | | |
-| 13 | 4/21 | | | | |
+|    | 4/16 | Missing Data | [{{< fa sharp presentation-screen >}}](slides/lecture12-2-missing-data.qmd) | | |
+| [13](weeks/week13.qmd) | 4/21 | Multiple Imputation and Class Review | [{{< fa sharp presentation-screen >}}](slides/lecture13-1-missing-example.qmd)  | | |
 |    | 4/23 | **No Class** | | | |
 | 14 | 4/28 | **Project Presentations** | | | |
 |    | 4/30 | **Project Presentations** | | | |

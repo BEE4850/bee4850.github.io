@@ -5,7 +5,7 @@ title: "Week 12 Information"
 ## Lectures
 
 - [Peaks Over Thresholds](../slides/lecture12-1-peaks-thresholds.qmd)
-- Missing Data
+- [Missing Data](../slides/lecture12-2-missing-data.qmd)
 
 ## Homework
 
