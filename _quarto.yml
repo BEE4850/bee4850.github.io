@@ -7,9 +7,9 @@ website:
   page-navigation: true
   title: "BEE 4850 - Spring 2025"
   description: "Homepage for BEE 4850/5850, Environmental Data Analysis and Simulation, at Cornell University, Spring 2025."
-  site-url: "https://viveks.me/simulation-data-analysis"
+  site-url: "https://bee4850.github.io"
 
-  repo-url: https://github.com/vsrikrish/simulation-data-analysis
+  repo-url: https://github.com/BEE4850/bee4850.github.io
 
   open-graph: true
 
@@ -34,7 +34,7 @@ website:
     search: true
     tools: 
       - icon: github
-        href: https://github.com/vsrikrish/simulation-data-analysis
+        href: https://github.com/BEE4850/bee4850.github.io
         text: "Github Repository"
       - icon: journal-check
         href: https://canvas.cornell.edu
@@ -81,6 +81,8 @@ website:
             text: "Week 11"
           - href: weeks/week12.qmd
             text: "Week 12"
+          - href: weeks/week13.qmd
+            text: "Week 13"
       - section: homework.qmd
         text: "Homework"
         contents:
@@ -93,6 +95,9 @@ website:
           - href: hw/hw03/hw03.qmd
             text: "Homework 03"
           - href: hw/hw04/hw04.qmd
+            text: "Homework 04"
+          - href: hw/hw05/hw05.qmd
+            text: "Homework 05"
       - project.qmd
       - lit_critique.qmd
       - section: "Julia Tutorials"
