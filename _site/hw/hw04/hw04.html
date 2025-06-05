@@ -64,7 +64,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script src="../../site_libs/quarto-search/fuse.min.js"></script>
 <script src="../../site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="../../">
-<link href="../../project.html" rel="next">
+<link href="../../hw/hw05/hw05.html" rel="next">
 <link href="../../hw/hw03/hw03.html" rel="prev">
 <script src="../../site_libs/quarto-html/quarto.js"></script>
 <script src="../../site_libs/quarto-html/popper.min.js"></script>
@@ -149,7 +149,7 @@ window.Quarto = {
       <button type="button" class="quarto-btn-toggle btn" data-bs-toggle="collapse" role="button" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">
         <i class="bi bi-layout-text-sidebar-reverse"></i>
       </button>
-        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../homework.html">Homework</a></li><li class="breadcrumb-item"><a href="../../hw/hw04/hw04.html">Homework 4: The Bootstrap</a></li></ol></nav>
+        <nav class="quarto-page-breadcrumbs" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../homework.html">Homework</a></li><li class="breadcrumb-item"><a href="../../hw/hw04/hw04.html">Homework 04</a></li></ol></nav>
         <a class="flex-grow-1" role="navigation" data-bs-toggle="collapse" data-bs-target=".quarto-sidebar-collapse-item" aria-controls="quarto-sidebar" aria-expanded="false" aria-label="Toggle sidebar navigation" onclick="if (window.quartoToggleHeadroom) { window.quartoToggleHeadroom(); }">      
         </a>
       <button type="button" class="btn quarto-search-button" aria-label="Search" onclick="window.quartoOpenSearch();">
@@ -169,7 +169,7 @@ window.Quarto = {
     <div class="sidebar-title mb-0 py-0">
       <a href="../../">Environmental Data Analysis and Simulation</a> 
         <div class="sidebar-tools-main tools-wide">
-    <a href="https://github.com/vsrikrish/simulation-data-analysis" title="Github Repository" class="quarto-navigation-tool px-1" aria-label="Github Repository"><i class="bi bi-github"></i></a>
+    <a href="https://github.com/BEE4850/bee4850.github.io" title="Github Repository" class="quarto-navigation-tool px-1" aria-label="Github Repository"><i class="bi bi-github"></i></a>
     <a href="https://canvas.cornell.edu" title="Canvas" class="quarto-navigation-tool px-1" aria-label="Canvas"><i class="bi bi-journal-check"></i></a>
     <a href="https://edstem.org" title="Ed Discussion" class="quarto-navigation-tool px-1" aria-label="Ed Discussion"><i class="bi bi-chat-fill"></i></a>
     <a href="https://gradescope.com" title="Gradescope" class="quarto-navigation-tool px-1" aria-label="Gradescope"><i class="bi bi-bar-chart-fill"></i></a>
@@ -293,6 +293,12 @@ window.Quarto = {
  <span class="menu-text">Week 12</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../weeks/week13.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Week 13</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -331,7 +337,13 @@ window.Quarto = {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="../../hw/hw04/hw04.html" class="sidebar-item-text sidebar-link active">
- <span class="menu-text">Homework 4: The Bootstrap</span></a>
+ <span class="menu-text">Homework 04</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="../../hw/hw05/hw05.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Homework 05</span></a>
   </div>
 </li>
       </ul>
@@ -436,7 +448,7 @@ window.Quarto = {
 <!-- main -->
 <main class="content" id="quarto-document-content">
 
-<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../homework.html">Homework</a></li><li class="breadcrumb-item"><a href="../../hw/hw04/hw04.html">Homework 4: The Bootstrap</a></li></ol></nav>
+<header id="title-block-header" class="quarto-title-block default"><nav class="quarto-page-breadcrumbs quarto-title-breadcrumbs d-none d-lg-block" aria-label="breadcrumb"><ol class="breadcrumb"><li class="breadcrumb-item"><a href="../../homework.html">Homework</a></li><li class="breadcrumb-item"><a href="../../hw/hw04/hw04.html">Homework 04</a></li></ol></nav>
 <div class="quarto-title">
 <h1 class="title">Homework 4: The Bootstrap</h1>
 <p class="subtitle lead">BEE 4850/5850, Fall 2025</p>
@@ -610,9 +622,9 @@ Stacktrace:
   [9] macro expansion
     @ ~/.julia/packages/DataFramesMeta/1Y7m8/src/macros.jl:1465 [inlined]
  [10] load_data(fname::String)
-    @ Main.Notebook ~/Teaching/BEE4850/website/hw/hw04/hw04.qmd:160
+    @ Main.Notebook ~/Teaching/BEE4850/new-web/hw/hw04/hw04.qmd:160
  [11] top-level scope
-    @ ~/Teaching/BEE4850/website/hw/hw04/hw04.qmd:167</code></pre>
+    @ ~/Teaching/BEE4850/new-web/hw/hw04/hw04.qmd:167</code></pre>
 </div>
 </div>
 <p>We detrend the data to isolate the weather-induced variability by subtracting the predictions from the observations; the results (following the Julia code) are in <code>dat[:, :weather]</code>.</p>
@@ -624,7 +636,7 @@ UndefVarError: `dat` not defined in `Main.Notebook`
 Suggestion: check for spelling errors or missing imports.
 Stacktrace:
  [1] top-level scope
-   @ ~/Teaching/BEE4850/website/hw/hw04/hw04.qmd:179</code></pre>
+   @ ~/Teaching/BEE4850/new-web/hw/hw04/hw04.qmd:179</code></pre>
 </div>
 </div>
 <p>We would like to understand the uncertainty in an estimate of the median sea level.</p>
@@ -730,7 +742,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp("https:\/\/viveks\.me\/simulation-data-analysis");
+      var filterRegex = new RegExp("https:\/\/bee4850\.github\.io");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
@@ -1105,8 +1117,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       </a>          
   </div>
   <div class="nav-page nav-page-next">
-      <a href="../../project.html" class="pagination-link" aria-label="Term Project">
-        <span class="nav-page-text">Term Project</span> <i class="bi bi-arrow-right-short"></i>
+      <a href="../../hw/hw05/hw05.html" class="pagination-link" aria-label="Homework 05">
+        <span class="nav-page-text">Homework 05</span> <i class="bi bi-arrow-right-short"></i>
       </a>
   </div>
 </nav>
@@ -1120,7 +1132,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       &nbsp;
     </div>
     <div class="nav-footer-right">
-<p>Made with <a href="https://julialang.org">Julia</a> and <a href="https://quarto.org/">Quarto</a><br> <a href="https://www.github.com/vsrikrish/simulation-data-analysis">View the source at <i class="fa-brands fa-github" aria-label="github"></i> GitHub</a></p>
+<p>Made with <a href="https://julialang.org">Julia</a> and <a href="https://quarto.org/">Quarto</a><br> <a href="https://www.github.com/BEE4850/bee4850.github.io">View the source at <i class="fa-brands fa-github" aria-label="github"></i> GitHub</a></p>
 </div>
   </div>
 </footer>

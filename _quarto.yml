@@ -7,7 +7,7 @@ website:
   page-navigation: true
   title: "BEE 4850 - Spring 2025"
   description: "Homepage for BEE 4850/5850, Environmental Data Analysis and Simulation, at Cornell University, Spring 2025."
-  site-url: "https://bee4850.github.io"
+  site-url: "https://bee4850.viveks.me"
 
   repo-url: https://github.com/BEE4850/bee4850.github.io
 
@@ -34,7 +34,7 @@ website:
     search: true
     tools: 
       - icon: github
-        href: https://github.com/BEE4850/bee4850.github.io
+        href: https://github.com/BEE4850/bee4850.viveks.me
         text: "Github Repository"
       - icon: journal-check
         href: https://canvas.cornell.edu

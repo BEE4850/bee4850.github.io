@@ -31,7 +31,7 @@ ul.task-list li input[type="checkbox"] {
 <script src="site_libs/quarto-search/quarto-search.js"></script>
 <meta name="quarto:offset" content="./">
 <link href="./rubrics/standard.html" rel="next">
-<link href="./weeks/week12.html" rel="prev">
+<link href="./weeks/week13.html" rel="prev">
 <script src="site_libs/quarto-html/quarto.js"></script>
 <script src="site_libs/quarto-html/popper.min.js"></script>
 <script src="site_libs/quarto-html/tippy.umd.min.js"></script>
@@ -106,7 +106,7 @@ ul.task-list li input[type="checkbox"] {
     <div class="sidebar-title mb-0 py-0">
       <a href="./">Environmental Data Analysis and Simulation</a> 
         <div class="sidebar-tools-main tools-wide">
-    <a href="https://github.com/vsrikrish/simulation-data-analysis" title="Github Repository" class="quarto-navigation-tool px-1" aria-label="Github Repository"><i class="bi bi-github"></i></a>
+    <a href="https://github.com/BEE4850/bee4850.github.io" title="Github Repository" class="quarto-navigation-tool px-1" aria-label="Github Repository"><i class="bi bi-github"></i></a>
     <a href="https://canvas.cornell.edu" title="Canvas" class="quarto-navigation-tool px-1" aria-label="Canvas"><i class="bi bi-journal-check"></i></a>
     <a href="https://edstem.org" title="Ed Discussion" class="quarto-navigation-tool px-1" aria-label="Ed Discussion"><i class="bi bi-chat-fill"></i></a>
     <a href="https://gradescope.com" title="Gradescope" class="quarto-navigation-tool px-1" aria-label="Gradescope"><i class="bi bi-bar-chart-fill"></i></a>
@@ -230,6 +230,12 @@ ul.task-list li input[type="checkbox"] {
  <span class="menu-text">Week 12</span></a>
   </div>
 </li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./weeks/week13.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Week 13</span></a>
+  </div>
+</li>
       </ul>
   </li>
         <li class="sidebar-item sidebar-item-section">
@@ -268,7 +274,13 @@ ul.task-list li input[type="checkbox"] {
           <li class="sidebar-item">
   <div class="sidebar-item-container"> 
   <a href="./hw/hw04/hw04.html" class="sidebar-item-text sidebar-link">
- <span class="menu-text">Homework 4: The Bootstrap</span></a>
+ <span class="menu-text">Homework 04</span></a>
+  </div>
+</li>
+          <li class="sidebar-item">
+  <div class="sidebar-item-container"> 
+  <a href="./hw/hw05/hw05.html" class="sidebar-item-text sidebar-link">
+ <span class="menu-text">Homework 05</span></a>
   </div>
 </li>
       </ul>
@@ -411,14 +423,12 @@ ul.task-list li input[type="checkbox"] {
 <col style="width: 20%">
 <col style="width: 5%">
 <col style="width: 10%">
-<col style="width: 10%">
 </colgroup>
 <thead>
 <tr class="header">
 <th style="text-align: center;">Assignment</th>
 <th style="text-align: center;">Instructions</th>
 <th style="text-align: center;">Due Date</th>
-<th style="text-align: left;">Solutions</th>
 </tr>
 </thead>
 <tbody>
@@ -426,31 +436,26 @@ ul.task-list li input[type="checkbox"] {
 <td style="text-align: center;">HW1</td>
 <td style="text-align: center;"><a href="./hw/hw01/hw01.html"><i class="fa-sharp fa-pen-field" aria-label="pen-field"></i></a></td>
 <td style="text-align: center;">Feb 07, 2025</td>
-<td style="text-align: left;"><a href="./solutions/hw/hw01/hw01.html"><i class="fa-sharp fa-key-skeleton" aria-label="key-skeleton"></i></a></td>
 </tr>
 <tr class="even">
 <td style="text-align: center;">HW2</td>
 <td style="text-align: center;"><a href="./hw/hw02/hw02.html"><i class="fa-sharp fa-pen-field" aria-label="pen-field"></i></a></td>
 <td style="text-align: center;">Feb 21, 2025</td>
-<td style="text-align: left;"><a href="./solutions/hw/hw02/hw02.html"><i class="fa-sharp fa-key-skeleton" aria-label="key-skeleton"></i></a></td>
 </tr>
 <tr class="odd">
 <td style="text-align: center;">HW3</td>
 <td style="text-align: center;"><a href="./hw/hw03/hw03.html"><i class="fa-sharp fa-pen-field" aria-label="pen-field"></i></a></td>
 <td style="text-align: center;">Mar 14, 2025</td>
-<td style="text-align: left;"><a href="./solutions/hw/hw03/hw03.html"><i class="fa-sharp fa-key-skeleton" aria-label="key-skeleton"></i></a></td>
 </tr>
 <tr class="even">
 <td style="text-align: center;">HW4</td>
 <td style="text-align: center;"><a href="./hw/hw04/hw04.html"><i class="fa-sharp fa-pen-field" aria-label="pen-field"></i></a></td>
 <td style="text-align: center;">Apr 11, 2025</td>
-<td style="text-align: left;"><a href="./solutions/hw/hw04/hw04.html"><i class="fa-sharp fa-key-skeleton" aria-label="key-skeleton"></i></a></td>
 </tr>
 <tr class="odd">
 <td style="text-align: center;">HW5</td>
 <td style="text-align: center;"><a href="./hw/hw05/hw05.html"><i class="fa-sharp fa-pen-field" aria-label="pen-field"></i></a></td>
 <td style="text-align: center;">May 2, 2025</td>
-<td style="text-align: left;"><span style="color:grey"><i class="fa-sharp fa-key-skeleton" aria-label="key-skeleton"></i></span></td>
 </tr>
 </tbody>
 </table>
@@ -549,7 +554,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
   }
     var localhostRegex = new RegExp(/^(?:http|https):\/\/localhost\:?[0-9]*\//);
     var mailtoRegex = new RegExp(/^mailto:/);
-      var filterRegex = new RegExp("https:\/\/viveks\.me\/simulation-data-analysis");
+      var filterRegex = new RegExp("https:\/\/bee4850\.github\.io");
     var isInternal = (href) => {
         return filterRegex.test(href) || localhostRegex.test(href) || mailtoRegex.test(href);
     }
@@ -919,8 +924,8 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
 </script>
 <nav class="page-navigation">
   <div class="nav-page nav-page-previous">
-      <a href="./weeks/week12.html" class="pagination-link" aria-label="Week 12">
-        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Week 12</span>
+      <a href="./weeks/week13.html" class="pagination-link" aria-label="Week 13">
+        <i class="bi bi-arrow-left-short"></i> <span class="nav-page-text">Week 13</span>
       </a>          
   </div>
   <div class="nav-page nav-page-next">
@@ -939,7 +944,7 @@ window.document.addEventListener("DOMContentLoaded", function (event) {
       &nbsp;
     </div>
     <div class="nav-footer-right">
-<p>Made with <a href="https://julialang.org">Julia</a> and <a href="https://quarto.org/">Quarto</a><br> <a href="https://www.github.com/vsrikrish/simulation-data-analysis">View the source at <i class="fa-brands fa-github" aria-label="github"></i> GitHub</a></p>
+<p>Made with <a href="https://julialang.org">Julia</a> and <a href="https://quarto.org/">Quarto</a><br> <a href="https://www.github.com/BEE4850/bee4850.github.io">View the source at <i class="fa-brands fa-github" aria-label="github"></i> GitHub</a></p>
 </div>
   </div>
 </footer>
