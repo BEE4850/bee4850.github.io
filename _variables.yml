@@ -23,8 +23,8 @@ course:
   days: "MW"
   time: "11:40-12:55pm"
   location: "160 Riley-Robb Hall"
-  github: "https://www.github.com/BEE4850/bee4850.github.io"
-  url: "https://bee4850.viveks.me/"
+  github: "https://github.com/bee-envdata-cornell/spring2025"
+  url: "https://envdata.viveks.me/spring2025"
   copyright_year: "2025"
   office_hours: "MW 1:00-2:00pm"
   ta_office_hours: "MTh 10:30-11:30"
@@ -38,4 +38,4 @@ department:
   url: "https://bee.cals.cornell.edu"
 
 github_org:
-  repo: "https://github.com/BEE4850"
+  repo: "https://github.com/bee-envdata-cornell/spring2025"

@@ -4,6 +4,8 @@ execute:
     error: true
     warning: true
 engine: julia
+julia:
+    exeflags: ["+1.10.4"]
 ---
 
 ## Overview

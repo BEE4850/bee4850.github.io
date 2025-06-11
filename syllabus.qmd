@@ -1,5 +1,4 @@
 ---
-engine: julia
 format:
   html:
     toc-depth: 3
@@ -22,7 +21,9 @@ format:
     number-sections: false
     title: "{{< var course.number >}} ({{< var course.title >}}) Syllabus"
     subtitle: "{{< var course.semester >}}"
-
+engine: julia
+julia:
+    exeflags: ["+1.10.4"]
 ---
 
 ## Course Overview

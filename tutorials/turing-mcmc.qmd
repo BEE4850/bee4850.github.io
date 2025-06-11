@@ -4,6 +4,8 @@ format:
     html: default
     ipynb: default
 engine: julia
+julia:
+    exeflags: ["+1.10.4"]
 ---
 
 ```{julia}
